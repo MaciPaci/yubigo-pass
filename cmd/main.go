@@ -1,6 +1,6 @@
 package main
 
-import "yubigo-pass/pkg/database"
+import "yubigo-pass/internal/database"
 
 func main() {
 	database.CreateDB()

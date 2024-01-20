@@ -41,6 +41,8 @@ func CreateDB() {
 		log.Fatal(err)
 	}
 
+	log.Info("Starting migration")
+
 	m, err := migrate.NewWithDatabaseInstance("file://assets/migrations", "sqlite3", driver)
 	if err != nil {
 		log.Fatal(err)
