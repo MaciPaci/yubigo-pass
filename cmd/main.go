@@ -1,7 +1,7 @@
 package main
 
-import "fmt"
+import "yubigo-pass/pkg/database"
 
 func main() {
-	fmt.Println("Hello, World!")
+	database.CreateDB()
 }
