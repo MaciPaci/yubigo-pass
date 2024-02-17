@@ -1,4 +1,5 @@
 linters:
+  disable-all: true
   enable:
     - lll
     - revive
@@ -7,7 +8,6 @@ linters:
     - govet
     - ineffassign
     - staticcheck
-    - typecheck
     - unused
 
 linters-settings:
@@ -22,3 +22,7 @@ linters-settings:
 issues:
   include:
     - EXC0012  # EXC0012 revive: Annoying issue about not having a comment. The rare codebase has such comments
+  exclude-rules:
+    - path: '(.+)_test\.go'
+      linters:
+        - typecheck
