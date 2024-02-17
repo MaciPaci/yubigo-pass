@@ -148,12 +148,12 @@ func (m CreateUserModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	// Handle character input and blinking
-	cmd := m.updateInputs(msg)
+	cmd := updateInputs(&m, msg)
 
 	return m, cmd
 }
 
-func (m *CreateUserModel) updateInputs(msg tea.Msg) tea.Cmd {
+func updateInputs(m *CreateUserModel, msg tea.Msg) tea.Cmd {
 	cmds := make([]tea.Cmd, len(m.inputs))
 
 	// Only text inputs with Focus() set will respond, so it's safe to simply
@@ -177,7 +177,7 @@ func (m CreateUserModel) View() string {
 	}
 
 	if m.finished {
-		errMsg = common.FontColor(fmt.Sprintf("%s User created succesfully \n", validateOkPrefix), colorValidateOk)
+		errMsg = common.FontColor(fmt.Sprintf("%s User created succesfully\n", validateOkPrefix), colorValidateOk)
 	}
 
 	for i := range m.inputs {
