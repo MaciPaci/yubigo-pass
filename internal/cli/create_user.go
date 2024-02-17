@@ -196,6 +196,9 @@ func (m CreateUserModel) View() string {
 }
 
 func validateInputs(input []textinput.Model) error {
+	if strings.TrimSpace(input[0].Value()) == "" && strings.TrimSpace(input[1].Value()) == "" {
+		return errors.New("username and password cannot be empty")
+	}
 	if strings.TrimSpace(input[0].Value()) == "" {
 		return errors.New("username cannot be empty")
 	}

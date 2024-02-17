@@ -105,3 +105,126 @@ func TestShouldCreateUser(t *testing.T) {
 
 	tm.WaitFinished(t, teatest.WithFinalTimeout(time.Second))
 }
+
+func TestShouldNotCreateUserWithEmptyUsername(t *testing.T) {
+	// given
+	tm := teatest.NewTestModel(
+		t,
+		NewCreateUserModel(),
+		teatest.WithInitialTermSize(300, 100),
+	)
+	examplePassword := "examplePassword"
+
+	// when
+	tm.Send(tea.KeyMsg{
+		Type: tea.KeyDown,
+	})
+
+	tm.Send(tea.KeyMsg{
+		Type:  tea.KeyRunes,
+		Runes: []rune(examplePassword),
+	})
+
+	tm.Send(tea.KeyMsg{
+		Type: tea.KeyTab,
+	})
+
+	tm.Send(tea.KeyMsg{
+		Type: tea.KeyEnter,
+	})
+
+	tm.Send(tea.KeyMsg{
+		Type: tea.KeyEnter,
+	})
+
+	// then
+	teatest.WaitFor(
+		t,
+		tm.Output(),
+		func(bts []byte) bool {
+			return bytes.Contains(bts, []byte("ERROR: username cannot be empty"))
+		},
+		teatest.WithCheckInterval(time.Millisecond*100),
+		teatest.WithDuration(time.Second*1),
+	)
+}
+
+func TestShouldNotCreateUserWithEmptyPassword(t *testing.T) {
+	// given
+	tm := teatest.NewTestModel(
+		t,
+		NewCreateUserModel(),
+		teatest.WithInitialTermSize(300, 100),
+	)
+	exampleUsername := "exampleUsername"
+
+	// when
+	tm.Send(tea.KeyMsg{
+		Type:  tea.KeyRunes,
+		Runes: []rune(exampleUsername),
+	})
+
+	tm.Send(tea.KeyMsg{
+		Type: tea.KeyDown,
+	})
+
+	tm.Send(tea.KeyMsg{
+		Type: tea.KeyTab,
+	})
+
+	tm.Send(tea.KeyMsg{
+		Type: tea.KeyEnter,
+	})
+
+	tm.Send(tea.KeyMsg{
+		Type: tea.KeyEnter,
+	})
+
+	// then
+	teatest.WaitFor(
+		t,
+		tm.Output(),
+		func(bts []byte) bool {
+			return bytes.Contains(bts, []byte("ERROR: password cannot be empty"))
+		},
+		teatest.WithCheckInterval(time.Millisecond*100),
+		teatest.WithDuration(time.Second*1),
+	)
+}
+
+func TestShouldNotCreateUserWithBothInputFieldsEmpty(t *testing.T) {
+	// given
+	tm := teatest.NewTestModel(
+		t,
+		NewCreateUserModel(),
+		teatest.WithInitialTermSize(300, 100),
+	)
+
+	// when
+	tm.Send(tea.KeyMsg{
+		Type: tea.KeyDown,
+	})
+
+	tm.Send(tea.KeyMsg{
+		Type: tea.KeyTab,
+	})
+
+	tm.Send(tea.KeyMsg{
+		Type: tea.KeyEnter,
+	})
+
+	tm.Send(tea.KeyMsg{
+		Type: tea.KeyEnter,
+	})
+
+	// then
+	teatest.WaitFor(
+		t,
+		tm.Output(),
+		func(bts []byte) bool {
+			return bytes.Contains(bts, []byte("ERROR: username and password cannot be empty"))
+		},
+		teatest.WithCheckInterval(time.Millisecond*100),
+		teatest.WithDuration(time.Second*1),
+	)
+}
