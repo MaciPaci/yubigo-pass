@@ -138,17 +138,16 @@ func (m CreateUserModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			return m, tea.Batch(cmds...)
-		}
-		m.err = validateInputs(m.inputs)
 
-	case error:
-		m.err = msg
-		m.showErr = true
-		return m, nil
+		case tea.KeyRunes:
+			m.showErr = false
+			m.err = nil
+		}
 	}
 
 	// Handle character input and blinking
 	cmd := updateInputs(&m, msg)
+	m.err = validateInputs(m.inputs)
 
 	return m, cmd
 }
@@ -169,15 +168,15 @@ func updateInputs(m *CreateUserModel, msg tea.Msg) tea.Cmd {
 func (m CreateUserModel) View() string {
 	var b strings.Builder
 
-	var errMsg string
+	var screenMsg string
 	if m.err != nil {
 		if m.showErr {
-			errMsg = common.FontColor(fmt.Sprintf("%s ERROR: %s\n", validateErrPrefix, m.err.Error()), colorValidateErr)
+			screenMsg = common.FontColor(fmt.Sprintf("%s ERROR: %s\n", validateErrPrefix, m.err.Error()), colorValidateErr)
 		}
 	}
 
 	if m.finished {
-		errMsg = common.FontColor(fmt.Sprintf("%s User created succesfully\n", validateOkPrefix), colorValidateOk)
+		screenMsg = common.FontColor(fmt.Sprintf("%s User created successfully\n", validateOkPrefix), colorValidateOk)
 	}
 
 	for i := range m.inputs {
@@ -191,17 +190,17 @@ func (m CreateUserModel) View() string {
 	if m.focusIndex == len(m.inputs) {
 		button = &focusedButton
 	}
-	fmt.Fprintf(&b, "\n\n%s\n%s\n", *button, errMsg)
+	fmt.Fprintf(&b, "\n\n%s\n%s\n", *button, screenMsg)
 
 	return b.String()
 }
 
 func validateInputs(input []textinput.Model) error {
 	if strings.TrimSpace(input[0].Value()) == "" {
-		return errors.New("username cannot empty")
+		return errors.New("username cannot be empty")
 	}
 	if strings.TrimSpace(input[1].Value()) == "" {
-		return errors.New("password cannot empty")
+		return errors.New("password cannot be empty")
 	}
 	return nil
 }
