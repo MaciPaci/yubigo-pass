@@ -94,13 +94,9 @@ func (m CreateUserModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.cancelled = true
 			return m, tea.Quit
 
-		// Set focus to next input
-		//case "tab", "shift+tab", "enter", "up", "down":
 		case tea.KeyTab, tea.KeyShiftTab, tea.KeyEnter, tea.KeyUp, tea.KeyDown, tea.KeyPgDown:
 			key := msg.Type
 
-			// Did the user press enter while the submit button was focused?
-			// If so, exit.
 			if key == tea.KeyEnter && m.focusIndex == len(m.inputs) {
 				if m.err == nil {
 					m.finished = true
@@ -144,8 +140,6 @@ func (m CreateUserModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.err = nil
 		}
 	}
-
-	// Handle character input and blinking
 	cmd := updateInputs(&m, msg)
 	m.err = validateInputs(m.inputs)
 
