@@ -39,8 +39,7 @@ type CreateUserModel struct {
 	cancelled bool
 }
 
-// PrintFields is a temporary helper that prints input fields values
-func PrintFields(m CreateUserModel) {
+func printFields(m CreateUserModel) {
 	for i := range m.inputs {
 		fmt.Println(m.inputs[i].Value())
 	}
@@ -86,6 +85,7 @@ func (m CreateUserModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		if m.finished {
+			printFields(m)
 			return m, tea.Quit
 		}
 

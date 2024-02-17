@@ -11,10 +11,9 @@ import (
 
 func main() {
 	database.CreateDB()
-	m, err := tea.NewProgram(cli.NewCreateUserModel()).Run()
+	_, err := tea.NewProgram(cli.NewCreateUserModel()).Run()
 	if err != nil {
 		fmt.Printf("could not start program: %s\n", err)
 		os.Exit(1)
 	}
-	cli.PrintFields(m.(cli.CreateUserModel))
 }
