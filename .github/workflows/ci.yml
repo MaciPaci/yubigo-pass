@@ -34,6 +34,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Build
+        run: go build -v ./...
+
       - name: Cache Go modules
         uses: actions/cache@v2
         id: cache-go-modules
@@ -43,11 +46,9 @@ jobs:
           restore-keys: |
             go-${{ runner.os }}-
 
-      - name: Build
-        run: go build -v ./...
-
   test:
     runs-on: ubuntu-latest
+    needs: build
     steps:
       - uses: actions/checkout@v3
 
