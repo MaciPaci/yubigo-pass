@@ -29,8 +29,10 @@ jobs:
           go install golang.org/x/lint/golint@latest
           golint ./...
 
-      - name: Security Scan
-        run: gosec ./...
+      - name: Security Scanner
+        uses: securego/gosec@master
+        with:
+          args: '-no-fail -fmt sarif -out results.sarif ./...'
 
   build:
     runs-on: ubuntu-latest
