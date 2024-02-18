@@ -9,8 +9,12 @@ import (
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/sqlite"
+
+	// import for migration driver
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jmoiron/sqlx"
+
+	// import for migration driver
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -25,7 +29,7 @@ func CreateDB() {
 
 	dbFilePath := filepath.Join(homeDir, dbFileName)
 
-	err = os.MkdirAll(filepath.Dir(dbFilePath), 0755)
+	err = os.MkdirAll(filepath.Dir(dbFilePath), 0750)
 	if err != nil {
 		log.Fatal("Error creating directory path:", err)
 	}
