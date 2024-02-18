@@ -29,7 +29,7 @@ func CreateDB() {
 
 	dbFilePath := filepath.Join(homeDir, dbFileName)
 
-	err = os.MkdirAll(filepath.Dir(dbFilePath), 0755)
+	err = os.MkdirAll(filepath.Dir(dbFilePath), 0750)
 	if err != nil {
 		log.Fatal("Error creating directory path:", err)
 	}
