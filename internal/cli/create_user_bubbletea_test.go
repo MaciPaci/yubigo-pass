@@ -202,11 +202,7 @@ func TestShouldNotCreateUserWithBothInputFieldsEmpty(t *testing.T) {
 
 	// when
 	tm.Send(tea.KeyMsg{
-		Type: tea.KeyDown,
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyTab,
+		Type: tea.KeyUp,
 	})
 
 	tm.Send(tea.KeyMsg{
