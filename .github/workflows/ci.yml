@@ -53,5 +53,5 @@ jobs:
       - name: Coverage
         run: |
           go install github.com/wadey/gocovmerge@latest
-          $GOPATH/bin/gocovmerge coverage_unit.out coverage_bubbletea.out > coverage_combined.out
+          $HOME/go/bin/gocovmerge coverage_unit.out coverage_bubbletea.out > coverage_combined.out
           go tool cover -func coverage_combined.out
