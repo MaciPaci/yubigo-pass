@@ -34,6 +34,15 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Cache Go modules
+        uses: actions/cache@v2
+        id: cache-go-modules
+        with:
+          path: ${{ env.GOPATH }}/pkg/mod
+          key: go-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            go-${{ runner.os }}-
+
       - name: Build
         run: go build -v ./...
 
@@ -41,6 +50,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
+      - name: Reuse cached Go modules
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.GOPATH }}/pkg/mod
+          key: go-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            go-${{ runner.os }}-
 
       - name: Test:unit
         run: |
