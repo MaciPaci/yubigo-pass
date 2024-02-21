@@ -20,8 +20,10 @@ import (
 
 const dbFileName = ".local/share/yubigo-pass/stores/root/yubigo-pass.db"
 
+var db *sqlx.DB
+
 // CreateDB Creates DB instance
-func CreateDB() {
+func CreateDB() *sqlx.DB {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		log.Fatal("Error getting home directory:", err)
@@ -38,7 +40,6 @@ func CreateDB() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer db.Close()
 
 	driver, err := sqlite.WithInstance(db.DB, &sqlite.Config{})
 	if err != nil {
@@ -58,4 +59,14 @@ func CreateDB() {
 	}
 
 	log.Info("Migration successful!")
+	return db
+}
+
+// CloseDB closes the database connection
+func CloseDB() {
+	if db != nil {
+		if err := db.Close(); err != nil {
+			log.Error("Error closing database connection:", err)
+		}
+	}
 }

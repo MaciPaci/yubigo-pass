@@ -1,8 +1,8 @@
 CREATE TABLE IF NOT EXISTS passwords
 (
-    id       INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT,
+    user_id  TEXT,
     site     TEXT,
     password TEXT,
-    UNIQUE(username, site)
+    PRIMARY KEY (user_id, site),
+    FOREIGN KEY (user_id) REFERENCES users(id)
 );

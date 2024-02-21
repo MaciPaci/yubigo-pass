@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"yubigo-pass/internal/database"
 
 	"github.com/mritd/bubbles/common"
 
@@ -32,23 +33,24 @@ const (
 type CreateUserModel struct {
 	focusIndex int
 	inputs     []textinput.Model
-	//cursorMode cursor.Mode
-	showErr   bool
-	err       error
-	finished  bool
-	cancelled bool
+	showErr    bool
+	err        error
+	finished   bool
+	cancelled  bool
+
+	store database.StoreExecutor
 }
 
-func printFields(m CreateUserModel) {
-	for i := range m.inputs {
-		fmt.Println(m.inputs[i].Value())
-	}
+// ExtractDataFromModel maps data from the model into strings
+func ExtractDataFromModel(m tea.Model) (string, string) {
+	return m.(CreateUserModel).inputs[0].Value(), m.(CreateUserModel).inputs[1].Value()
 }
 
 // NewCreateUserModel returns model for user creation
-func NewCreateUserModel() CreateUserModel {
+func NewCreateUserModel(store database.StoreExecutor) CreateUserModel {
 	m := CreateUserModel{
 		inputs: make([]textinput.Model, 2),
+		store:  store,
 	}
 
 	var t textinput.Model
@@ -85,7 +87,6 @@ func (m CreateUserModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		if m.finished {
-			printFields(m)
 			return m, tea.Quit
 		}
 
@@ -99,8 +100,12 @@ func (m CreateUserModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			if key == tea.KeyEnter && m.focusIndex == len(m.inputs) {
 				if m.err == nil {
-					m.finished = true
-					return m, common.Done
+					user, _ := m.store.GetUser(m.inputs[0].Value())
+					if user.Username == "" {
+						m.finished = true
+						return m, common.Done
+					}
+					m.err = errors.New("username already exists")
 				}
 				m.showErr = true
 			}
@@ -141,7 +146,7 @@ func (m CreateUserModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 	cmd := updateInputs(&m, msg)
-	m.err = validateInputs(m.inputs)
+	m.err = validateInputs(m.inputs, m.err)
 
 	return m, cmd
 }
@@ -189,7 +194,10 @@ func (m CreateUserModel) View() string {
 	return b.String()
 }
 
-func validateInputs(input []textinput.Model) error {
+func validateInputs(input []textinput.Model, err error) error {
+	if err != nil {
+		return err
+	}
 	if strings.TrimSpace(input[0].Value()) == "" && strings.TrimSpace(input[1].Value()) == "" {
 		return errors.New("username and password cannot be empty")
 	}

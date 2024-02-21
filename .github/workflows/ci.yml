@@ -58,14 +58,14 @@ jobs:
         run: |
           go test -v ./... -coverprofile coverage_unit.out -covermode count -tags=unit
 
-      - name: Test:bubbletea
+      - name: Test:e2e
         run: |
-          go test -v ./... -coverprofile coverage_bubbletea.out -covermode count -tags=bubbletea
+          go test -v ./... -coverprofile coverage_e2e.out -covermode count -tags=e2e
 
       - name: Coverage
         run: |
           go install github.com/wadey/gocovmerge@latest
-          $HOME/go/bin/gocovmerge coverage_unit.out coverage_bubbletea.out > coverage_combined.out
+          $HOME/go/bin/gocovmerge coverage_unit.out coverage_e2e.out > coverage_combined.out
           go tool cover -func coverage_combined.out
 
   security:
