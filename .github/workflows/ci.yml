@@ -58,10 +58,14 @@ jobs:
           go test -v ./... -coverprofile coverage_e2e.out -covermode count -tags=e2e
 
       - name: Coverage
+        env:
+          COVERALLS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           go install github.com/wadey/gocovmerge@latest
+          go install github.com/mattn/goveralls@latest
           $HOME/go/bin/gocovmerge coverage_unit.out coverage_e2e.out > coverage_combined.out
           go tool cover -func coverage_combined.out
+          goveralls -coverprofile=coverage_combined.out -service=github
 
   security:
     runs-on: ubuntu-latest
