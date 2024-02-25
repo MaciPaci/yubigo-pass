@@ -1,6 +1,9 @@
 package test
 
-import "math/rand"
+import (
+	"crypto/rand"
+	"math/big"
+)
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 const stringLength = 32
@@ -9,7 +12,8 @@ const stringLength = 32
 func RandomString() string {
 	b := make([]byte, stringLength)
 	for i := range b {
-		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+		r, _ := rand.Int(rand.Reader, big.NewInt(int64(len(letterBytes))))
+		b[i] = letterBytes[r.Int64()]
 	}
 	return string(b)
 }
