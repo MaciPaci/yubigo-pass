@@ -33,7 +33,7 @@ func runCreateUserFlow(serviceContainer services.Container) error {
 		return fmt.Errorf("could not start program: %w\n", err)
 	}
 
-	err = createUserInDB(serviceContainer, m)
+	err = createNewUser(serviceContainer, m)
 	if err != nil {
 		return err
 	}
@@ -41,7 +41,7 @@ func runCreateUserFlow(serviceContainer services.Container) error {
 	return nil
 }
 
-func createUserInDB(serviceContainer services.Container, m tea.Model) error {
+func createNewUser(serviceContainer services.Container, m tea.Model) error {
 	userUUID := uuid.New().String()
 	username, password := cli.ExtractDataFromModel(m)
 	salt := crypto.NewSalt()

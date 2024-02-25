@@ -46,7 +46,7 @@ func TestCreateUserFlowShouldCreateNewUserInDB(t *testing.T) {
 	}
 
 	// when
-	err = createUserInDB(container, fm)
+	err = createNewUser(container, fm)
 	assert.Nil(t, err)
 
 	// then
@@ -87,14 +87,18 @@ func TestCreateUserFlowShouldNotCreateNewUserInDBIfOneWithTheSameUsernameAlready
 	}
 
 	// and user with the same username already exists in the database
-	err = container.Store.CreateUser(model.NewUser(test.RandomString(), username, test.RandomString(), test.RandomString()))
-	assert.Nil(t, err)
+	test.InsertIntoUsers(t, db, model.User{
+		Uuid:     test.RandomString(),
+		Username: username,
+		Password: test.RandomString(),
+		Salt:     test.RandomString(),
+	})
 
 	// expected
 	expectedError := model.NewUserAlreadyExistsError(fmt.Errorf("could not insert new user: failed to create user: user already exists: UNIQUE constraint failed: users.username\n"))
 
 	// when
-	err = createUserInDB(container, fm)
+	err = createNewUser(container, fm)
 
 	// then
 	assert.EqualError(t, err, expectedError.Error())

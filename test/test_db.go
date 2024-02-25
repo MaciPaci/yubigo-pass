@@ -4,6 +4,8 @@ import (
 	"errors"
 	"path/filepath"
 	"runtime"
+	"testing"
+	"yubigo-pass/internal/app/model"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/sqlite"
@@ -48,4 +50,14 @@ func SetupTestDB() (*sqlx.DB, error) {
 // TeardownTestDB closes in-memory test database
 func TeardownTestDB(db *sqlx.DB) {
 	db.Close()
+}
+
+// InsertIntoUsers inserts record into users database for tests only
+func InsertIntoUsers(t *testing.T, db *sqlx.DB, input model.User) {
+	query := `INSERT INTO users (id, username, password, salt) VALUES ($1, $2, $3, $4)`
+
+	_, err := db.Exec(query, input.Uuid, input.Username, input.Password, input.Salt)
+	if err != nil {
+		t.Fatalf("failed to create user: %s", err)
+	}
 }
