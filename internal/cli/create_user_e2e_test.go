@@ -7,6 +7,7 @@ import (
 	"io"
 	"testing"
 	"time"
+	"yubigo-pass/internal/database"
 	"yubigo-pass/test"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -228,14 +229,25 @@ func TestShouldNotCreateUserWithBothInputFieldsEmpty(t *testing.T) {
 
 func TestShouldNotCreateUserIfUsernameAlreadyExists(t *testing.T) {
 	// given
+	db, err := test.SetupTestDB()
+	if err != nil {
+		t.Fatalf("Failed to set up test database: %v", err)
+	}
+	defer test.TeardownTestDB(db)
+
 	tm := teatest.NewTestModel(
 		t,
-		NewCreateUserModel(test.NewStoreExecutorMock()),
+		NewCreateUserModel(database.NewStore(db)),
 		teatest.WithInitialTermSize(300, 100),
 	)
 
-	// expected
 	examplePassword := test.RandomString()
+
+	// and username already exists in database
+	_, err = db.Exec("INSERT INTO users (id, username, password, salt) VALUES (?, ?, ?, ?)", "1", test.ExistingUsername, test.RandomString(), test.RandomString())
+	if err != nil {
+		t.Fatalf("failed to insert record to db: %v", err)
+	}
 
 	// when
 	tm.Send(tea.KeyMsg{

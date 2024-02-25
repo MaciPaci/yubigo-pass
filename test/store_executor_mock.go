@@ -23,10 +23,5 @@ func (s StoreExecutorMock) CreateUser(input model.User) error {
 
 // GetUser mocks StoreExecutor GetUser method
 func (s StoreExecutorMock) GetUser(username string) (model.User, error) {
-	if username == ExistingUsername {
-		return model.User{
-			Username: username,
-		}, nil
-	}
 	return model.User{}, nil
 }

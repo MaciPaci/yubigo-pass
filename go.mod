@@ -14,7 +14,6 @@ require (
 	github.com/mritd/bubbles v0.0.0-20210825105013-cb7a572fb831
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.8.4
-	golang.org/x/crypto v0.17.0
 )
 
 require (

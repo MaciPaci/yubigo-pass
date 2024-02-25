@@ -175,7 +175,7 @@ func (m CreateUserModel) View() string {
 	}
 
 	if m.finished {
-		screenMsg = common.FontColor(fmt.Sprintf("%s User created successfully\n", validateOkPrefix), colorValidateOk)
+		screenMsg = common.FontColor(fmt.Sprintf("%s User created successfully. Press any button to quit\n", validateOkPrefix), colorValidateOk)
 	}
 
 	for i := range m.inputs {

@@ -9,6 +9,8 @@ import (
 	"yubigo-pass/internal/cli"
 	"yubigo-pass/internal/database"
 
+	tea "github.com/charmbracelet/bubbletea"
+
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
@@ -31,15 +33,22 @@ func runCreateUserFlow(serviceContainer services.Container) error {
 		return fmt.Errorf("could not start program: %w\n", err)
 	}
 
-	userUUID := uuid.New().String()
-	username, password := cli.ExtractDataFromModel(m)
-	passwordHash, salt, err := crypto.HashPasswordWithSalt(password)
+	err = createUserInDB(serviceContainer, m)
 	if err != nil {
-		return fmt.Errorf("could not hash password: %w\n", err)
+		return err
 	}
 
+	return nil
+}
+
+func createUserInDB(serviceContainer services.Container, m tea.Model) error {
+	userUUID := uuid.New().String()
+	username, password := cli.ExtractDataFromModel(m)
+	salt := crypto.NewSalt()
+	passwordHash := crypto.HashPasswordWithSalt(password, salt)
+
 	createUserInput := model.NewUser(userUUID, username, passwordHash, salt)
-	err = serviceContainer.Store.CreateUser(createUserInput)
+	err := serviceContainer.Store.CreateUser(createUserInput)
 	if err != nil {
 		return fmt.Errorf("could not insert new user: %w\n", err)
 	}
