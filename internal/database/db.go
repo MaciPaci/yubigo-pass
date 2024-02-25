@@ -10,11 +10,9 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/sqlite"
 
-	// import for migration driver
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jmoiron/sqlx"
 
-	// import for migration driver
 	_ "github.com/mattn/go-sqlite3"
 )
 
