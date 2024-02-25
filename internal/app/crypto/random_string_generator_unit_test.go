@@ -44,9 +44,10 @@ func TestRandomStringWithLength(t *testing.T) {
 		t.Run(
 			testCase.name, func(t *testing.T) {
 				// when
-				generatedString := RandomStringWithLength(testCase.length)
+				generatedString, err := RandomStringWithLength(testCase.length)
 
 				// then
+				assert.Nil(t, err)
 				assert.Equal(t, len(generatedString), testCase.length)
 			})
 

@@ -12,7 +12,8 @@ import (
 func TestHashPasswordWithSaltShouldReturnTheSameHashEveryTime(t *testing.T) {
 	// given
 	password := test.RandomString()
-	salt := NewSalt()
+	salt, err := NewSalt()
+	assert.Nil(t, err)
 
 	// when
 	hashedPassword := HashPasswordWithSalt(password, salt)

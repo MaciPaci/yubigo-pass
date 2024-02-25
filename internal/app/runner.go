@@ -44,11 +44,14 @@ func runCreateUserFlow(serviceContainer services.Container) error {
 func createNewUser(serviceContainer services.Container, m tea.Model) error {
 	userUUID := uuid.New().String()
 	username, password := cli.ExtractDataFromModel(m)
-	salt := crypto.NewSalt()
+	salt, err := crypto.NewSalt()
+	if err != nil {
+		return err
+	}
 	passwordHash := crypto.HashPasswordWithSalt(password, salt)
 
 	createUserInput := model.NewUser(userUUID, username, passwordHash, salt)
-	err := serviceContainer.Store.CreateUser(createUserInput)
+	err = serviceContainer.Store.CreateUser(createUserInput)
 	if err != nil {
 		return fmt.Errorf("could not insert new user: %w", err)
 	}

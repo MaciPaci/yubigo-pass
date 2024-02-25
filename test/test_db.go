@@ -22,25 +22,25 @@ func SetupTestDB() (*sqlx.DB, error) {
 
 	db, err := sqlx.Connect("sqlite3", ":memory:")
 	if err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, err
 	}
 
 	driver, err := sqlite.WithInstance(db.DB, &sqlite.Config{})
 	if err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, err
 	}
 
 	m, err := migrate.NewWithDatabaseInstance("file://"+migrationsDir, "sqlite3://:memory:", driver)
 	if err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, err
 	}
 
 	err = m.Up()
 	if err != nil && !errors.Is(err, migrate.ErrNoChange) {
-		db.Close()
+		_ = db.Close()
 		return nil, err
 	}
 
@@ -49,7 +49,7 @@ func SetupTestDB() (*sqlx.DB, error) {
 
 // TeardownTestDB closes in-memory test database
 func TeardownTestDB(db *sqlx.DB) {
-	db.Close()
+	_ = db.Close()
 }
 
 // InsertIntoUsers inserts record into users database for tests only

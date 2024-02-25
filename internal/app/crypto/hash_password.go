@@ -13,6 +13,6 @@ func HashPasswordWithSalt(password, salt string) string {
 }
 
 // NewSalt returns new random salt
-func NewSalt() string {
+func NewSalt() (string, error) {
 	return RandomStringWithLength(32)
 }
