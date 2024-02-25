@@ -24,11 +24,6 @@ jobs:
           go install honnef.co/go/tools/cmd/staticcheck@latest
           staticcheck ./...
 
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@v4
-        with:
-          args: --issues-exit-code=0
-
   build:
     runs-on: ubuntu-latest
     needs: verify
