@@ -30,7 +30,7 @@ func Run() {
 func runCreateUserFlow(serviceContainer services.Container) error {
 	m, err := serviceContainer.Programs.CreateUserProgram.Run()
 	if err != nil {
-		return fmt.Errorf("could not start program: %w\n", err)
+		return fmt.Errorf("could not start program: %w", err)
 	}
 
 	err = createNewUser(serviceContainer, m)
@@ -50,7 +50,7 @@ func createNewUser(serviceContainer services.Container, m tea.Model) error {
 	createUserInput := model.NewUser(userUUID, username, passwordHash, salt)
 	err := serviceContainer.Store.CreateUser(createUserInput)
 	if err != nil {
-		return fmt.Errorf("could not insert new user: %w\n", err)
+		return fmt.Errorf("could not insert new user: %w", err)
 	}
 
 	return nil
