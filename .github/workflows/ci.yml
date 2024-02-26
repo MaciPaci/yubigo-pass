@@ -53,6 +53,10 @@ jobs:
         run: |
           go test -v ./... -coverprofile coverage_unit.out -covermode count -tags=unit
 
+      - name: Test:integration
+        run: |
+          go test -v ./... -coverprofile coverage_integration.out -covermode count -tags=integration
+
       - name: Test:e2e
         run: |
           go test -v ./... -coverprofile coverage_e2e.out -covermode count -tags=e2e
@@ -63,7 +67,7 @@ jobs:
         run: |
           go install github.com/wadey/gocovmerge@latest
           go install github.com/mattn/goveralls@latest
-          $HOME/go/bin/gocovmerge coverage_unit.out coverage_e2e.out > coverage_combined.out
+          $HOME/go/bin/gocovmerge coverage_unit.out coverage_integration.out coverage_e2e.out > coverage_combined.out
           go tool cover -func coverage_combined.out
           goveralls -coverprofile=coverage_combined.out -service=github
 
