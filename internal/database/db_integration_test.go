@@ -3,6 +3,7 @@
 package database
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -22,9 +23,10 @@ func TestCreateDBAndThenCloseConnection(t *testing.T) {
 	migrationsDir := filepath.Join("file://", cwd, "../../assets/migrations")
 
 	// when
-	db := CreateDB(tempDBFilePath, migrationsDir)
+	db, err := CreateDB(tempDBFilePath, migrationsDir)
 
 	// then
+	assert.Nil(t, err)
 	assert.NotNil(t, db)
 	_, err = os.Stat(tempDBFilePath)
 	assert.NoError(t, err)
@@ -35,4 +37,35 @@ func TestCreateDBAndThenCloseConnection(t *testing.T) {
 
 	// then connection is closed
 	assert.EqualError(t, err, "sql: database is closed")
+}
+
+func TestCreateDBShouldFailCreatingDirectory(t *testing.T) {
+	// given
+	incorrectPath := t.TempDir()
+
+	// expected
+	expectedError := fmt.Errorf("error creating database instance: unable to open database file: is a directory")
+
+	// when
+	db, err := CreateDB(incorrectPath, "")
+
+	// then
+	assert.EqualError(t, err, expectedError.Error())
+	assert.Nil(t, db)
+}
+
+func TestCreateDBShouldFailMigration(t *testing.T) {
+	// given
+	tempDir := t.TempDir()
+	tempDBFilePath := filepath.Join(tempDir, "test.db")
+
+	// expected
+	expectedError := fmt.Errorf("error creating migration instance: URL cannot be empty")
+
+	// when
+	db, err := CreateDB(tempDBFilePath, "")
+
+	// then
+	assert.EqualError(t, err, expectedError.Error())
+	assert.Nil(t, db)
 }

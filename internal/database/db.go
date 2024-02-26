@@ -2,6 +2,7 @@ package database
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -25,36 +26,40 @@ const MigrationPath = "file://assets/migrations"
 var db *sqlx.DB
 
 // CreateDB Creates DB instance
-func CreateDB(dbFilePath, migrationPath string) *sqlx.DB {
+func CreateDB(dbFilePath, migrationPath string) (*sqlx.DB, error) {
 	err := os.MkdirAll(filepath.Dir(dbFilePath), 0750)
 	if err != nil {
-		log.Fatal("Error creating directory path:", err)
+		return nil, fmt.Errorf("error creating directory path: %w", err)
 	}
 
 	db, err = sqlx.Connect("sqlite3", dbFilePath)
 	if err != nil {
-		log.Fatal(err)
+		CloseDB()
+		return nil, fmt.Errorf("error creating database instance: %w", err)
 	}
 
 	driver, err := sqlite.WithInstance(db.DB, &sqlite.Config{})
 	if err != nil {
-		log.Fatal(err)
+		CloseDB()
+		return nil, fmt.Errorf("error creating database driver: %w", err)
 	}
 
 	log.Info("Starting migration")
 
 	m, err := migrate.NewWithDatabaseInstance(migrationPath, "sqlite3", driver)
 	if err != nil {
-		log.Fatal(err)
+		CloseDB()
+		return nil, fmt.Errorf("error creating migration instance: %w", err)
 	}
 
 	err = m.Up()
 	if err != nil && !errors.Is(err, migrate.ErrNoChange) {
-		log.Fatal(err)
+		CloseDB()
+		return nil, fmt.Errorf("error during migration: %w", err)
 	}
 
 	log.Info("Migration successful!")
-	return db
+	return db, nil
 }
 
 // CloseDB closes the database connection
