@@ -3,6 +3,7 @@ package crypto
 import (
 	"crypto/sha256"
 	"encoding/base64"
+	"yubigo-pass/internal/app/utils"
 )
 
 // HashPasswordWithSalt salts and hashes the given password
@@ -14,5 +15,5 @@ func HashPasswordWithSalt(password, salt string) string {
 
 // NewSalt returns new random salt
 func NewSalt() (string, error) {
-	return RandomStringWithLength(32)
+	return utils.RandomStringWithLength(32)
 }

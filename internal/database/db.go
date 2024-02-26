@@ -16,25 +16,22 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-const dbFileName = ".local/share/yubigo-pass/stores/root/yubigo-pass.db"
+// DbFileName is a path to DB local file
+const DbFileName = ".local/share/yubigo-pass/stores/root/yubigo-pass.db"
+
+// MigrationPath is a path to migration directory
+const MigrationPath = "file://assets/migrations"
 
 var db *sqlx.DB
 
 // CreateDB Creates DB instance
-func CreateDB() *sqlx.DB {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		log.Fatal("Error getting home directory:", err)
-	}
-
-	dbFilePath := filepath.Join(homeDir, dbFileName)
-
-	err = os.MkdirAll(filepath.Dir(dbFilePath), 0750)
+func CreateDB(dbFilePath, migrationPath string) *sqlx.DB {
+	err := os.MkdirAll(filepath.Dir(dbFilePath), 0750)
 	if err != nil {
 		log.Fatal("Error creating directory path:", err)
 	}
 
-	db, err := sqlx.Connect("sqlite3", dbFilePath)
+	db, err = sqlx.Connect("sqlite3", dbFilePath)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -46,7 +43,7 @@ func CreateDB() *sqlx.DB {
 
 	log.Info("Starting migration")
 
-	m, err := migrate.NewWithDatabaseInstance("file://assets/migrations", "sqlite3", driver)
+	m, err := migrate.NewWithDatabaseInstance(migrationPath, "sqlite3", driver)
 	if err != nil {
 		log.Fatal(err)
 	}

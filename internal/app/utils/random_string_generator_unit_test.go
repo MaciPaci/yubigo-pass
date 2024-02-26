@@ -1,6 +1,6 @@
 //go:build unit
 
-package crypto
+package utils
 
 import (
 	"testing"
