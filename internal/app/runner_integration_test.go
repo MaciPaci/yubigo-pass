@@ -3,7 +3,6 @@
 package app
 
 import (
-	"fmt"
 	"testing"
 	"yubigo-pass/internal/app/crypto"
 	"yubigo-pass/internal/app/model"
@@ -95,7 +94,7 @@ func TestCreateUserFlowShouldNotCreateNewUserInDBIfOneWithTheSameUsernameAlready
 	})
 
 	// expected
-	expectedError := model.NewUserAlreadyExistsError(fmt.Errorf("could not insert new user: failed to create user: user already exists: UNIQUE constraint failed: users.username"))
+	expectedError := model.NewUserAlreadyExistsError(username)
 
 	// when
 	err = createNewUser(container, fm)

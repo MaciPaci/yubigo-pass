@@ -56,7 +56,7 @@ func TestShouldNotCreateUserIfOneWithTheSameUsernameIsAlreadyInDB(t *testing.T) 
 	test.InsertIntoUsers(t, db, input)
 
 	// expected
-	expectedError := model.NewUserAlreadyExistsError(fmt.Errorf("failed to create user: user already exists: UNIQUE constraint failed: users.username"))
+	expectedError := model.NewUserAlreadyExistsError(input.Username)
 
 	// when
 	err = store.CreateUser(input)

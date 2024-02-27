@@ -53,7 +53,7 @@ func createNewUser(serviceContainer services.Container, m tea.Model) error {
 	createUserInput := model.NewUser(userUUID, username, passwordHash, salt)
 	err = serviceContainer.Store.CreateUser(createUserInput)
 	if err != nil {
-		return fmt.Errorf("could not insert new user: %w", err)
+		return err
 	}
 
 	return nil
