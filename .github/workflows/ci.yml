@@ -63,7 +63,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: test-log
+          name: test-log-unit
           path: /tmp/gotest_unit.log
           if-no-files-found: error
 
@@ -76,7 +76,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: test-log
+          name: test-log-integration
           path: /tmp/gotest_integration.log
           if-no-files-found: error
 
@@ -89,7 +89,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: test-log
+          name: test-log-e2e
           path: /tmp/gotest_e2e.log
           if-no-files-found: error
 
