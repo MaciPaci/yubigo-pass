@@ -2,6 +2,7 @@ package database
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -10,52 +11,62 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/sqlite"
 
-	// import for migration driver
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jmoiron/sqlx"
 
-	// import for migration driver
 	_ "github.com/mattn/go-sqlite3"
 )
 
-const dbFileName = ".local/share/yubigo-pass/stores/root/yubigo-pass.db"
+// DbFileName is a path to DB local file
+const DbFileName = ".local/share/yubigo-pass/stores/root/yubigo-pass.db"
+
+// MigrationPath is a path to migration directory
+const MigrationPath = "file://assets/migrations"
+
+var db *sqlx.DB
 
 // CreateDB Creates DB instance
-func CreateDB() {
-	homeDir, err := os.UserHomeDir()
+func CreateDB(dbFilePath, migrationPath string) (*sqlx.DB, error) {
+	err := os.MkdirAll(filepath.Dir(dbFilePath), 0750)
 	if err != nil {
-		log.Fatal("Error getting home directory:", err)
+		return nil, fmt.Errorf("error creating directory path: %w", err)
 	}
 
-	dbFilePath := filepath.Join(homeDir, dbFileName)
-
-	err = os.MkdirAll(filepath.Dir(dbFilePath), 0750)
+	db, err = sqlx.Connect("sqlite3", dbFilePath)
 	if err != nil {
-		log.Fatal("Error creating directory path:", err)
+		CloseDB()
+		return nil, fmt.Errorf("error creating database instance: %w", err)
 	}
-
-	db, err := sqlx.Connect("sqlite3", dbFilePath)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
 
 	driver, err := sqlite.WithInstance(db.DB, &sqlite.Config{})
 	if err != nil {
-		log.Fatal(err)
+		CloseDB()
+		return nil, fmt.Errorf("error creating database driver: %w", err)
 	}
 
 	log.Info("Starting migration")
 
-	m, err := migrate.NewWithDatabaseInstance("file://assets/migrations", "sqlite3", driver)
+	m, err := migrate.NewWithDatabaseInstance(migrationPath, "sqlite3", driver)
 	if err != nil {
-		log.Fatal(err)
+		CloseDB()
+		return nil, fmt.Errorf("error creating migration instance: %w", err)
 	}
 
 	err = m.Up()
 	if err != nil && !errors.Is(err, migrate.ErrNoChange) {
-		log.Fatal(err)
+		CloseDB()
+		return nil, fmt.Errorf("error during migration: %w", err)
 	}
 
 	log.Info("Migration successful!")
+	return db, nil
+}
+
+// CloseDB closes the database connection
+func CloseDB() {
+	if db != nil {
+		if err := db.Close(); err != nil {
+			log.Error("Error closing database connection:", err)
+		}
+	}
 }

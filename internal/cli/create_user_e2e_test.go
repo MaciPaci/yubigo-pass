@@ -1,4 +1,4 @@
-//go:build bubbletea
+//go:build e2e
 
 package cli
 
@@ -7,6 +7,8 @@ import (
 	"io"
 	"testing"
 	"time"
+	"yubigo-pass/internal/database"
+	"yubigo-pass/test"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/exp/teatest"
@@ -16,7 +18,7 @@ import (
 func TestShouldQuitCreateUserProgram(t *testing.T) {
 	tm := teatest.NewTestModel(
 		t,
-		NewCreateUserModel(),
+		NewCreateUserModel(test.NewStoreExecutorMock()),
 		teatest.WithInitialTermSize(300, 100),
 	)
 
@@ -54,13 +56,13 @@ func TestShouldCreateUser(t *testing.T) {
 	// given
 	tm := teatest.NewTestModel(
 		t,
-		NewCreateUserModel(),
+		NewCreateUserModel(test.NewStoreExecutorMock()),
 		teatest.WithInitialTermSize(300, 100),
 	)
 
 	// expected
-	exampleUsername := "exampleUsername"
-	examplePassword := "examplePassword"
+	exampleUsername := test.RandomString()
+	examplePassword := test.RandomString()
 
 	// when
 	tm.Send(tea.KeyMsg{
@@ -110,10 +112,10 @@ func TestShouldNotCreateUserWithEmptyUsername(t *testing.T) {
 	// given
 	tm := teatest.NewTestModel(
 		t,
-		NewCreateUserModel(),
+		NewCreateUserModel(test.NewStoreExecutorMock()),
 		teatest.WithInitialTermSize(300, 100),
 	)
-	examplePassword := "examplePassword"
+	examplePassword := test.RandomString()
 
 	// when
 	tm.Send(tea.KeyMsg{
@@ -153,10 +155,10 @@ func TestShouldNotCreateUserWithEmptyPassword(t *testing.T) {
 	// given
 	tm := teatest.NewTestModel(
 		t,
-		NewCreateUserModel(),
+		NewCreateUserModel(test.NewStoreExecutorMock()),
 		teatest.WithInitialTermSize(300, 100),
 	)
-	exampleUsername := "exampleUsername"
+	exampleUsername := test.RandomString()
 
 	// when
 	tm.Send(tea.KeyMsg{
@@ -196,7 +198,7 @@ func TestShouldNotCreateUserWithBothInputFieldsEmpty(t *testing.T) {
 	// given
 	tm := teatest.NewTestModel(
 		t,
-		NewCreateUserModel(),
+		NewCreateUserModel(test.NewStoreExecutorMock()),
 		teatest.WithInitialTermSize(300, 100),
 	)
 
@@ -219,6 +221,67 @@ func TestShouldNotCreateUserWithBothInputFieldsEmpty(t *testing.T) {
 		tm.Output(),
 		func(bts []byte) bool {
 			return bytes.Contains(bts, []byte("ERROR: username and password cannot be empty"))
+		},
+		teatest.WithCheckInterval(time.Millisecond*100),
+		teatest.WithDuration(time.Second*1),
+	)
+}
+
+func TestShouldNotCreateUserIfUsernameAlreadyExists(t *testing.T) {
+	// given
+	db, err := test.SetupTestDB()
+	if err != nil {
+		t.Fatalf("Failed to set up test database: %v", err)
+	}
+	defer test.TeardownTestDB(db)
+
+	tm := teatest.NewTestModel(
+		t,
+		NewCreateUserModel(database.NewStore(db)),
+		teatest.WithInitialTermSize(300, 100),
+	)
+
+	examplePassword := test.RandomString()
+
+	// and username already exists in database
+	_, err = db.Exec("INSERT INTO users (id, username, password, salt) VALUES (?, ?, ?, ?)", "1", test.ExistingUsername, test.RandomString(), test.RandomString())
+	if err != nil {
+		t.Fatalf("failed to insert record to db: %v", err)
+	}
+
+	// when
+	tm.Send(tea.KeyMsg{
+		Type:  tea.KeyRunes,
+		Runes: []rune(test.ExistingUsername),
+	})
+
+	tm.Send(tea.KeyMsg{
+		Type: tea.KeyDown,
+	})
+
+	tm.Send(tea.KeyMsg{
+		Type:  tea.KeyRunes,
+		Runes: []rune(examplePassword),
+	})
+
+	tm.Send(tea.KeyMsg{
+		Type: tea.KeyTab,
+	})
+
+	tm.Send(tea.KeyMsg{
+		Type: tea.KeyEnter,
+	})
+
+	tm.Send(tea.KeyMsg{
+		Type: tea.KeyEnter,
+	})
+
+	// then
+	teatest.WaitFor(
+		t,
+		tm.Output(),
+		func(bts []byte) bool {
+			return bytes.Contains(bts, []byte("ERROR: username already exists"))
 		},
 		teatest.WithCheckInterval(time.Millisecond*100),
 		teatest.WithDuration(time.Second*1),

@@ -8,6 +8,7 @@ require (
 	github.com/charmbracelet/lipgloss v0.9.1
 	github.com/charmbracelet/x/exp/teatest v0.0.0-20240212161549-c6c7abef80f4
 	github.com/golang-migrate/migrate/v4 v4.17.0
+	github.com/google/uuid v1.4.0
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/mritd/bubbles v0.0.0-20210825105013-cb7a572fb831
@@ -21,7 +22,6 @@ require (
 	github.com/aymanbagabas/go-udiff v0.2.0 // indirect
 	github.com/containerd/console v1.0.4-0.20230313162750-1ae8d489ac81 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/google/uuid v1.4.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
