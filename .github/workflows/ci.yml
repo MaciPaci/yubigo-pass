@@ -60,7 +60,7 @@ jobs:
           go test -json -v ./... -coverprofile coverage_unit.out -covermode count -tags=unit 2>&1 | tee /tmp/gotest_unit.log | gotestfmt
 
       - name: Upload log:unit
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: test-log
@@ -73,7 +73,7 @@ jobs:
           go test -json -v ./... -coverprofile coverage_integration.out -covermode count -tags=integration 2>&1 | tee /tmp/gotest_integration.log | gotestfmt
 
       - name: Upload log:integration
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: test-log
@@ -86,7 +86,7 @@ jobs:
           go test -json -v ./... -coverprofile coverage_e2e.out -covermode count -tags=e2e 2>&1 | tee /tmp/gotest_e2e.log | gotestfmt
 
       - name: Upload log:e2e
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: test-log
