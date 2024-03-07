@@ -48,7 +48,7 @@ func TestShouldQuitCreateUserProgram(t *testing.T) {
 				fm := tm.FinalModel(t)
 				m, ok := fm.(CreateUserModel)
 				assert.Truef(t, ok, "final model has wrong type: %T", fm)
-				assert.Truef(t, m.cancelled, "final model is not cancelled")
+				assert.Truef(t, m.WasCancelled(), "final model is not cancelled")
 				tm.WaitFinished(t, teatest.WithFinalTimeout(time.Millisecond*100))
 			},
 		)
@@ -95,9 +95,10 @@ func TestShouldCreateUser(t *testing.T) {
 	fm := tm.FinalModel(t)
 	m, ok := fm.(CreateUserModel)
 	assert.True(t, ok)
-	assert.True(t, m.userCreated)
-	assert.Equal(t, exampleUsername, m.inputs[0].Value())
-	assert.Equal(t, examplePassword, m.inputs[1].Value())
+	assert.True(t, m.WasUserCreated())
+	resultUsername, resultPassword := ExtractDataFromModel(m)
+	assert.Equal(t, exampleUsername, resultUsername)
+	assert.Equal(t, examplePassword, resultPassword)
 
 	out, err := io.ReadAll(tm.FinalOutput(t))
 	if err != nil {
