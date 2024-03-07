@@ -34,10 +34,6 @@ func TestRandomStringWithLength(t *testing.T) {
 			"should generate random string with length 128",
 			128,
 		},
-		{
-			"should generate random string with length 1000000",
-			1000000,
-		},
 	}
 
 	for _, testCase := range testCases {

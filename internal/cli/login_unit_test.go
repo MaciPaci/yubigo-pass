@@ -12,20 +12,20 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCreateUserShouldValidateCorrectInput(t *testing.T) {
+func TestLoginShouldValidateCorrectInput(t *testing.T) {
 	// given
 	var correctInput = make([]textinput.Model, 2)
 	correctInput[0].SetValue(test.RandomString())
 	correctInput[1].SetValue(test.RandomString())
 
 	// when
-	err := validateCreateUserModelInputs(correctInput, nil)
+	err := validateLoginModelInputs(correctInput, nil)
 
 	// then
 	assert.Nil(t, err)
 }
 
-func TestCreateUserShouldNotValidateIncorrectInputWithEmptyPassword(t *testing.T) {
+func TestLoginShouldNotValidateIncorrectInputWithEmptyPassword(t *testing.T) {
 	// given
 	var incorrectInput = make([]textinput.Model, 2)
 	incorrectInput[0].SetValue(test.RandomString())
@@ -35,13 +35,13 @@ func TestCreateUserShouldNotValidateIncorrectInputWithEmptyPassword(t *testing.T
 	expectedError := errors.New("password cannot empty")
 
 	// when
-	err := validateCreateUserModelInputs(incorrectInput, nil)
+	err := validateLoginModelInputs(incorrectInput, nil)
 
 	// then
 	assert.Error(t, expectedError, err)
 }
 
-func TestCreateUserShouldNotValidateIncorrectInputWithEmptyUsername(t *testing.T) {
+func TestLoginShouldNotValidateIncorrectInputWithEmptyUsername(t *testing.T) {
 	// given
 	var incorrectInput = make([]textinput.Model, 2)
 	incorrectInput[0].SetValue("")
@@ -51,13 +51,13 @@ func TestCreateUserShouldNotValidateIncorrectInputWithEmptyUsername(t *testing.T
 	expectedError := errors.New("username cannot empty")
 
 	// when
-	err := validateCreateUserModelInputs(incorrectInput, nil)
+	err := validateLoginModelInputs(incorrectInput, nil)
 
 	// then
 	assert.Error(t, expectedError, err)
 }
 
-func TestCreateUserShouldReturnErrorIfErrorWasPassed(t *testing.T) {
+func TestLoginShouldReturnErrorIfErrorWasPassed(t *testing.T) {
 	// given
 	var correctInput = make([]textinput.Model, 2)
 	correctInput[0].SetValue(test.RandomString())
@@ -65,7 +65,7 @@ func TestCreateUserShouldReturnErrorIfErrorWasPassed(t *testing.T) {
 	passedError := fmt.Errorf("example error")
 
 	// when
-	err := validateCreateUserModelInputs(correctInput, passedError)
+	err := validateLoginModelInputs(correctInput, passedError)
 
 	// then
 	assert.Error(t, passedError, err)
