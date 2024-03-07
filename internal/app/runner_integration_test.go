@@ -37,10 +37,8 @@ func TestCreateUserFlowShouldCreateNewUserInDB(t *testing.T) {
 
 	container := services.Container{
 		Store: database.NewStore(db),
-		Programs: struct {
-			CreateUserProgram *tea.Program
-		}{
-			CreateUserProgram: tea.NewProgram(fm),
+		Models: services.TeaModels{
+			CreateUser: fm,
 		},
 	}
 
@@ -78,10 +76,8 @@ func TestCreateUserFlowShouldNotCreateNewUserInDBIfOneWithTheSameUsernameAlready
 
 	container := services.Container{
 		Store: database.NewStore(db),
-		Programs: struct {
-			CreateUserProgram *tea.Program
-		}{
-			CreateUserProgram: tea.NewProgram(fm),
+		Models: services.TeaModels{
+			CreateUser: fm,
 		},
 	}
 

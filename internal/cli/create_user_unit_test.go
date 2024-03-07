@@ -19,7 +19,7 @@ func TestShouldValidateCorrectInput(t *testing.T) {
 	correctInput[1].SetValue(test.RandomString())
 
 	// when
-	err := validateInputs(correctInput, nil)
+	err := validateCreateUserModelInputs(correctInput, nil)
 
 	// then
 	assert.Nil(t, err)
@@ -35,7 +35,7 @@ func TestShouldNotValidateIncorrectInputWithEmptyPassword(t *testing.T) {
 	expectedError := errors.New("password cannot empty")
 
 	// when
-	err := validateInputs(incorrectInput, nil)
+	err := validateCreateUserModelInputs(incorrectInput, nil)
 
 	// then
 	assert.Error(t, expectedError, err)
@@ -51,7 +51,7 @@ func TestShouldNotValidateIncorrectInputWithEmptyUsername(t *testing.T) {
 	expectedError := errors.New("username cannot empty")
 
 	// when
-	err := validateInputs(incorrectInput, nil)
+	err := validateCreateUserModelInputs(incorrectInput, nil)
 
 	// then
 	assert.Error(t, expectedError, err)
@@ -65,7 +65,7 @@ func TestShouldReturnErrorIfErrorWasPassed(t *testing.T) {
 	passedError := fmt.Errorf("example error")
 
 	// when
-	err := validateInputs(correctInput, passedError)
+	err := validateCreateUserModelInputs(correctInput, passedError)
 
 	// then
 	assert.Error(t, passedError, err)

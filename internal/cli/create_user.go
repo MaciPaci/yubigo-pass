@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 	"yubigo-pass/internal/database"
@@ -31,12 +30,12 @@ const (
 
 // CreateUserModel is a model for user creation
 type CreateUserModel struct {
-	focusIndex int
-	inputs     []textinput.Model
-	showErr    bool
-	err        error
-	finished   bool
-	cancelled  bool
+	focusIndex  int
+	inputs      []textinput.Model
+	showErr     bool
+	err         error
+	cancelled   bool
+	userCreated bool
 
 	store database.StoreExecutor
 }
@@ -44,6 +43,16 @@ type CreateUserModel struct {
 // ExtractDataFromModel maps data from the model into strings
 func ExtractDataFromModel(m tea.Model) (string, string) {
 	return m.(CreateUserModel).inputs[0].Value(), m.(CreateUserModel).inputs[1].Value()
+}
+
+// WasUserCreated determines whether user was created during create user action
+func (m CreateUserModel) WasUserCreated() bool {
+	return m.userCreated
+}
+
+// WasCancelled determines whether create user action was cancelled
+func (m CreateUserModel) WasCancelled() bool {
+	return m.cancelled
 }
 
 // NewCreateUserModel returns model for user creation
@@ -86,10 +95,6 @@ func (m CreateUserModel) Init() tea.Cmd {
 func (m CreateUserModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if m.finished {
-			return m, tea.Quit
-		}
-
 		switch msg.Type {
 		case tea.KeyCtrlC, tea.KeyEsc:
 			m.cancelled = true
@@ -102,10 +107,10 @@ func (m CreateUserModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if m.err == nil {
 					user, _ := m.store.GetUser(m.inputs[0].Value())
 					if user.Username == "" {
-						m.finished = true
-						return m, common.Done
+						m.userCreated = true
+						return m, tea.Quit
 					}
-					m.err = errors.New("username already exists")
+					m.err = fmt.Errorf("username already exists")
 				}
 				m.showErr = true
 			}
@@ -145,13 +150,13 @@ func (m CreateUserModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.err = nil
 		}
 	}
-	cmd := updateInputs(&m, msg)
-	m.err = validateInputs(m.inputs, m.err)
+	cmd := updateCreateUserModelInputs(&m, msg)
+	m.err = validateCreateUserModelInputs(m.inputs, m.err)
 
 	return m, cmd
 }
 
-func updateInputs(m *CreateUserModel, msg tea.Msg) tea.Cmd {
+func updateCreateUserModelInputs(m *CreateUserModel, msg tea.Msg) tea.Cmd {
 	cmds := make([]tea.Cmd, len(m.inputs))
 
 	// Only text inputs with Focus() set will respond, so it's safe to simply
@@ -174,8 +179,8 @@ func (m CreateUserModel) View() string {
 		}
 	}
 
-	if m.finished {
-		screenMsg = common.FontColor(fmt.Sprintf("%s User created successfully. Press any button to quit\n", validateOkPrefix), colorValidateOk)
+	if m.userCreated {
+		screenMsg = common.FontColor(fmt.Sprintf("%s User created successfully\n", validateOkPrefix), colorValidateOk)
 	}
 
 	for i := range m.inputs {
@@ -194,18 +199,22 @@ func (m CreateUserModel) View() string {
 	return b.String()
 }
 
-func validateInputs(input []textinput.Model, err error) error {
+func validateCreateUserModelInputs(input []textinput.Model, err error) error {
 	if err != nil {
 		return err
 	}
-	if strings.TrimSpace(input[0].Value()) == "" && strings.TrimSpace(input[1].Value()) == "" {
-		return errors.New("username and password cannot be empty")
+
+	usernameIsEmpty := func() bool { return strings.TrimSpace(input[0].Value()) == "" }
+	passwordIsEmpty := func() bool { return strings.TrimSpace(input[1].Value()) == "" }
+
+	if usernameIsEmpty() && passwordIsEmpty() {
+		return fmt.Errorf("username and password cannot be empty")
 	}
-	if strings.TrimSpace(input[0].Value()) == "" {
-		return errors.New("username cannot be empty")
+	if usernameIsEmpty() {
+		return fmt.Errorf("username cannot be empty")
 	}
-	if strings.TrimSpace(input[1].Value()) == "" {
-		return errors.New("password cannot be empty")
+	if passwordIsEmpty() {
+		return fmt.Errorf("password cannot be empty")
 	}
 	return nil
 }

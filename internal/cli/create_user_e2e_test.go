@@ -7,8 +7,11 @@ import (
 	"io"
 	"testing"
 	"time"
+	"yubigo-pass/internal/app/model"
 	"yubigo-pass/internal/database"
 	"yubigo-pass/test"
+
+	"github.com/google/uuid"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/exp/teatest"
@@ -54,9 +57,10 @@ func TestShouldQuitCreateUserProgram(t *testing.T) {
 
 func TestShouldCreateUser(t *testing.T) {
 	// given
+	db, err := test.SetupTestDB()
 	tm := teatest.NewTestModel(
 		t,
-		NewCreateUserModel(test.NewStoreExecutorMock()),
+		NewCreateUserModel(database.NewStore(db)),
 		teatest.WithInitialTermSize(300, 100),
 	)
 
@@ -87,15 +91,11 @@ func TestShouldCreateUser(t *testing.T) {
 		Type: tea.KeyEnter,
 	})
 
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyEnter,
-	})
-
 	// then
 	fm := tm.FinalModel(t)
 	m, ok := fm.(CreateUserModel)
 	assert.True(t, ok)
-	assert.True(t, m.finished)
+	assert.True(t, m.userCreated)
 	assert.Equal(t, exampleUsername, m.inputs[0].Value())
 	assert.Equal(t, examplePassword, m.inputs[1].Value())
 
@@ -129,10 +129,6 @@ func TestShouldNotCreateUserWithEmptyUsername(t *testing.T) {
 
 	tm.Send(tea.KeyMsg{
 		Type: tea.KeyTab,
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyEnter,
 	})
 
 	tm.Send(tea.KeyMsg{
@@ -178,10 +174,6 @@ func TestShouldNotCreateUserWithEmptyPassword(t *testing.T) {
 		Type: tea.KeyEnter,
 	})
 
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyEnter,
-	})
-
 	// then
 	teatest.WaitFor(
 		t,
@@ -205,10 +197,6 @@ func TestShouldNotCreateUserWithBothInputFieldsEmpty(t *testing.T) {
 	// when
 	tm.Send(tea.KeyMsg{
 		Type: tea.KeyUp,
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyEnter,
 	})
 
 	tm.Send(tea.KeyMsg{
@@ -244,10 +232,7 @@ func TestShouldNotCreateUserIfUsernameAlreadyExists(t *testing.T) {
 	examplePassword := test.RandomString()
 
 	// and username already exists in database
-	_, err = db.Exec("INSERT INTO users (id, username, password, salt) VALUES (?, ?, ?, ?)", "1", test.ExistingUsername, test.RandomString(), test.RandomString())
-	if err != nil {
-		t.Fatalf("failed to insert record to db: %v", err)
-	}
+	test.InsertIntoUsers(t, db, model.NewUser(uuid.New().String(), test.ExistingUsername, test.RandomString(), test.RandomString()))
 
 	// when
 	tm.Send(tea.KeyMsg{
@@ -266,10 +251,6 @@ func TestShouldNotCreateUserIfUsernameAlreadyExists(t *testing.T) {
 
 	tm.Send(tea.KeyMsg{
 		Type: tea.KeyTab,
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyEnter,
 	})
 
 	tm.Send(tea.KeyMsg{
