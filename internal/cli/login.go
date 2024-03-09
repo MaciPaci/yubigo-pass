@@ -44,6 +44,16 @@ func (m LoginModel) CreateUserActionPicked() bool {
 	return m.createUserPicked
 }
 
+// LoggedInSuccessfully determines whether user logged in successfully
+func (m LoginModel) LoggedInSuccessfully() bool {
+	return m.loggedIn
+}
+
+// WasCancelled determines whether login action was cancelled
+func (m LoginModel) WasCancelled() bool {
+	return m.cancelled
+}
+
 // NewLoginModel returns model for user creation
 func NewLoginModel(store database.StoreExecutor) LoginModel {
 	m := LoginModel{

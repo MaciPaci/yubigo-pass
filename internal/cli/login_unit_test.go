@@ -57,6 +57,22 @@ func TestLoginShouldNotValidateIncorrectInputWithEmptyUsername(t *testing.T) {
 	assert.Error(t, expectedError, err)
 }
 
+func TestLoginShouldNotValidateIncorrectInputWithEmptyBothFields(t *testing.T) {
+	// given
+	var incorrectInput = make([]textinput.Model, 2)
+	incorrectInput[0].SetValue("")
+	incorrectInput[1].SetValue("")
+
+	// expected
+	expectedError := errors.New("username and password cannot empty")
+
+	// when
+	err := validateLoginModelInputs(incorrectInput, nil)
+
+	// then
+	assert.Error(t, expectedError, err)
+}
+
 func TestLoginShouldReturnErrorIfErrorWasPassed(t *testing.T) {
 	// given
 	var correctInput = make([]textinput.Model, 2)

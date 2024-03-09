@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestShouldQuitCreateUserProgram(t *testing.T) {
+func TestShouldQuitCreateUserAction(t *testing.T) {
 	tm := teatest.NewTestModel(
 		t,
 		NewCreateUserModel(test.NewStoreExecutorMock()),
@@ -58,6 +58,9 @@ func TestShouldQuitCreateUserProgram(t *testing.T) {
 func TestShouldCreateUser(t *testing.T) {
 	// given
 	db, err := test.SetupTestDB()
+	if err != nil {
+		t.Fatalf("Failed to set up test database: %v", err)
+	}
 	tm := teatest.NewTestModel(
 		t,
 		NewCreateUserModel(database.NewStore(db)),
