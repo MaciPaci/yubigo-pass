@@ -42,9 +42,7 @@ func TestShouldQuitCreateUserAction(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(
 			testCase.name, func(t *testing.T) {
-				tm.Send(tea.KeyMsg{
-					Type: testCase.key,
-				})
+				test.PressKey(tm, testCase.key)
 				fm := tm.FinalModel(t)
 				m, ok := fm.(CreateUserModel)
 				assert.Truef(t, ok, "final model has wrong type: %T", fm)
@@ -72,27 +70,11 @@ func TestShouldCreateUser(t *testing.T) {
 	examplePassword := test.RandomString()
 
 	// when
-	tm.Send(tea.KeyMsg{
-		Type:  tea.KeyRunes,
-		Runes: []rune(exampleUsername),
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyDown,
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type:  tea.KeyRunes,
-		Runes: []rune(examplePassword),
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyTab,
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyEnter,
-	})
+	test.TypeString(tm, exampleUsername)
+	test.PressKey(tm, tea.KeyDown)
+	test.TypeString(tm, examplePassword)
+	test.PressKey(tm, tea.KeyTab)
+	test.PressKey(tm, tea.KeyEnter)
 
 	// then
 	fm := tm.FinalModel(t)
@@ -122,22 +104,10 @@ func TestShouldNotCreateUserWithEmptyUsername(t *testing.T) {
 	examplePassword := test.RandomString()
 
 	// when
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyDown,
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type:  tea.KeyRunes,
-		Runes: []rune(examplePassword),
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyTab,
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyEnter,
-	})
+	test.PressKey(tm, tea.KeyDown)
+	test.TypeString(tm, examplePassword)
+	test.PressKey(tm, tea.KeyTab)
+	test.PressKey(tm, tea.KeyEnter)
 
 	// then
 	teatest.WaitFor(
@@ -161,22 +131,10 @@ func TestShouldNotCreateUserWithEmptyPassword(t *testing.T) {
 	exampleUsername := test.RandomString()
 
 	// when
-	tm.Send(tea.KeyMsg{
-		Type:  tea.KeyRunes,
-		Runes: []rune(exampleUsername),
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyDown,
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyTab,
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyEnter,
-	})
+	test.TypeString(tm, exampleUsername)
+	test.PressKey(tm, tea.KeyDown)
+	test.PressKey(tm, tea.KeyTab)
+	test.PressKey(tm, tea.KeyEnter)
 
 	// then
 	teatest.WaitFor(
@@ -199,13 +157,8 @@ func TestShouldNotCreateUserWithBothInputFieldsEmpty(t *testing.T) {
 	)
 
 	// when
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyUp,
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyEnter,
-	})
+	test.PressKey(tm, tea.KeyUp)
+	test.PressKey(tm, tea.KeyEnter)
 
 	// then
 	teatest.WaitFor(
@@ -233,33 +186,18 @@ func TestShouldNotCreateUserIfUsernameAlreadyExists(t *testing.T) {
 		teatest.WithInitialTermSize(300, 100),
 	)
 
+	existingUsername := test.RandomString()
 	examplePassword := test.RandomString()
 
 	// and username already exists in database
-	test.InsertIntoUsers(t, db, model.NewUser(uuid.New().String(), test.ExistingUsername, test.RandomString(), test.RandomString()))
+	test.InsertIntoUsers(t, db, model.NewUser(uuid.New().String(), existingUsername, test.RandomString(), test.RandomString()))
 
 	// when
-	tm.Send(tea.KeyMsg{
-		Type:  tea.KeyRunes,
-		Runes: []rune(test.ExistingUsername),
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyDown,
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type:  tea.KeyRunes,
-		Runes: []rune(examplePassword),
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyTab,
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyEnter,
-	})
+	test.TypeString(tm, existingUsername)
+	test.PressKey(tm, tea.KeyDown)
+	test.TypeString(tm, examplePassword)
+	test.PressKey(tm, tea.KeyTab)
+	test.PressKey(tm, tea.KeyEnter)
 
 	// then
 	teatest.WaitFor(

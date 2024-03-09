@@ -42,9 +42,7 @@ func TestShouldQuitLoginAction(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(
 			testCase.name, func(t *testing.T) {
-				tm.Send(tea.KeyMsg{
-					Type: testCase.key,
-				})
+				test.PressKey(tm, testCase.key)
 				fm := tm.FinalModel(t)
 				m, ok := fm.(LoginModel)
 				assert.Truef(t, ok, "final model has wrong type: %T", fm)
@@ -58,6 +56,7 @@ func TestShouldQuitLoginAction(t *testing.T) {
 func TestLoginShouldSucceed(t *testing.T) {
 	// given
 	db, err := test.SetupTestDB()
+	defer test.TeardownTestDB(db)
 	if err != nil {
 		t.Fatalf("Failed to set up test database: %v", err)
 	}
@@ -86,27 +85,11 @@ func TestLoginShouldSucceed(t *testing.T) {
 	test.InsertIntoUsers(t, db, existingUser)
 
 	// when
-	tm.Send(tea.KeyMsg{
-		Type:  tea.KeyRunes,
-		Runes: []rune(existingUsername),
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyDown,
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type:  tea.KeyRunes,
-		Runes: []rune(existingPassword),
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyEnter,
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyEnter,
-	})
+	test.TypeString(tm, existingUsername)
+	test.PressKey(tm, tea.KeyDown)
+	test.TypeString(tm, existingPassword)
+	test.PressKey(tm, tea.KeyEnter)
+	test.PressKey(tm, tea.KeyEnter)
 
 	// then
 	fm := tm.FinalModel(t)
@@ -126,6 +109,7 @@ func TestLoginShouldSucceed(t *testing.T) {
 func TestLoginShouldNotSucceedWithIncorrectCredentials(t *testing.T) {
 	// given
 	db, err := test.SetupTestDB()
+	defer test.TeardownTestDB(db)
 	if err != nil {
 		t.Fatalf("Failed to set up test database: %v", err)
 	}
@@ -156,27 +140,11 @@ func TestLoginShouldNotSucceedWithIncorrectCredentials(t *testing.T) {
 	test.InsertIntoUsers(t, db, existingUser)
 
 	// when
-	tm.Send(tea.KeyMsg{
-		Type:  tea.KeyRunes,
-		Runes: []rune(randomUsername),
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyDown,
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type:  tea.KeyRunes,
-		Runes: []rune(randomPassword),
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyEnter,
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyEnter,
-	})
+	test.TypeString(tm, randomUsername)
+	test.PressKey(tm, tea.KeyDown)
+	test.TypeString(tm, randomPassword)
+	test.PressKey(tm, tea.KeyEnter)
+	test.PressKey(tm, tea.KeyEnter)
 
 	// then
 	teatest.WaitFor(
@@ -193,6 +161,7 @@ func TestLoginShouldNotSucceedWithIncorrectCredentials(t *testing.T) {
 func TestLoginShouldNotSucceedWithIncorrectPassword(t *testing.T) {
 	// given
 	db, err := test.SetupTestDB()
+	defer test.TeardownTestDB(db)
 	if err != nil {
 		t.Fatalf("Failed to set up test database: %v", err)
 	}
@@ -222,27 +191,11 @@ func TestLoginShouldNotSucceedWithIncorrectPassword(t *testing.T) {
 	test.InsertIntoUsers(t, db, existingUser)
 
 	// when
-	tm.Send(tea.KeyMsg{
-		Type:  tea.KeyRunes,
-		Runes: []rune(existingUsername),
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyDown,
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type:  tea.KeyRunes,
-		Runes: []rune(incorrectPassword),
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyEnter,
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyEnter,
-	})
+	test.TypeString(tm, existingUsername)
+	test.PressKey(tm, tea.KeyDown)
+	test.TypeString(tm, incorrectPassword)
+	test.PressKey(tm, tea.KeyEnter)
+	test.PressKey(tm, tea.KeyEnter)
 
 	// then
 	teatest.WaitFor(
@@ -258,13 +211,9 @@ func TestLoginShouldNotSucceedWithIncorrectPassword(t *testing.T) {
 
 func TestLoginShouldNotValidateEmptyUsername(t *testing.T) {
 	// given
-	db, err := test.SetupTestDB()
-	if err != nil {
-		t.Fatalf("Failed to set up test database: %v", err)
-	}
 	tm := teatest.NewTestModel(
 		t,
-		NewLoginModel(database.NewStore(db)),
+		NewLoginModel(test.NewStoreExecutorMock()),
 		teatest.WithInitialTermSize(300, 100),
 	)
 
@@ -272,27 +221,11 @@ func TestLoginShouldNotValidateEmptyUsername(t *testing.T) {
 	randomPassword := test.RandomString()
 
 	// when
-	tm.Send(tea.KeyMsg{
-		Type:  tea.KeyRunes,
-		Runes: []rune(emptyUsername),
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyDown,
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type:  tea.KeyRunes,
-		Runes: []rune(randomPassword),
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyEnter,
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyEnter,
-	})
+	test.TypeString(tm, emptyUsername)
+	test.PressKey(tm, tea.KeyDown)
+	test.TypeString(tm, randomPassword)
+	test.PressKey(tm, tea.KeyEnter)
+	test.PressKey(tm, tea.KeyEnter)
 
 	// then
 	teatest.WaitFor(
@@ -308,13 +241,9 @@ func TestLoginShouldNotValidateEmptyUsername(t *testing.T) {
 
 func TestLoginShouldNotValidateEmptyPassword(t *testing.T) {
 	// given
-	db, err := test.SetupTestDB()
-	if err != nil {
-		t.Fatalf("Failed to set up test database: %v", err)
-	}
 	tm := teatest.NewTestModel(
 		t,
-		NewLoginModel(database.NewStore(db)),
+		NewLoginModel(test.NewStoreExecutorMock()),
 		teatest.WithInitialTermSize(300, 100),
 	)
 
@@ -322,27 +251,11 @@ func TestLoginShouldNotValidateEmptyPassword(t *testing.T) {
 	randomUsername := test.RandomString()
 
 	// when
-	tm.Send(tea.KeyMsg{
-		Type:  tea.KeyRunes,
-		Runes: []rune(randomUsername),
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyDown,
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type:  tea.KeyRunes,
-		Runes: []rune(emptyPassword),
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyEnter,
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyEnter,
-	})
+	test.TypeString(tm, randomUsername)
+	test.PressKey(tm, tea.KeyDown)
+	test.TypeString(tm, emptyPassword)
+	test.PressKey(tm, tea.KeyEnter)
+	test.PressKey(tm, tea.KeyEnter)
 
 	// then
 	teatest.WaitFor(
@@ -358,24 +271,15 @@ func TestLoginShouldNotValidateEmptyPassword(t *testing.T) {
 
 func TestLoginShouldNotValidateEmptyUsernameAndPassword(t *testing.T) {
 	// given
-	db, err := test.SetupTestDB()
-	if err != nil {
-		t.Fatalf("Failed to set up test database: %v", err)
-	}
 	tm := teatest.NewTestModel(
 		t,
-		NewLoginModel(database.NewStore(db)),
+		NewLoginModel(test.NewStoreExecutorMock()),
 		teatest.WithInitialTermSize(300, 100),
 	)
 
 	// when
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyUp,
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyEnter,
-	})
+	test.PressKey(tm, tea.KeyUp)
+	test.PressKey(tm, tea.KeyEnter)
 
 	// then
 	teatest.WaitFor(
@@ -391,24 +295,15 @@ func TestLoginShouldNotValidateEmptyUsernameAndPassword(t *testing.T) {
 
 func TestLoginShouldEnterCreateUserAction(t *testing.T) {
 	// given
-	db, err := test.SetupTestDB()
-	if err != nil {
-		t.Fatalf("Failed to set up test database: %v", err)
-	}
 	tm := teatest.NewTestModel(
 		t,
-		NewLoginModel(database.NewStore(db)),
+		NewLoginModel(test.NewStoreExecutorMock()),
 		teatest.WithInitialTermSize(300, 100),
 	)
 
 	// when
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyTab,
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyEnter,
-	})
+	test.PressKey(tm, tea.KeyTab)
+	test.PressKey(tm, tea.KeyEnter)
 
 	// then
 	fm := tm.FinalModel(t)
@@ -422,6 +317,7 @@ func TestLoginShouldEnterCreateUserAction(t *testing.T) {
 func TestLoginShouldSucceedAfterEnteringCreateUserFlowAndBack(t *testing.T) {
 	// given
 	db, err := test.SetupTestDB()
+	defer test.TeardownTestDB(db)
 	if err != nil {
 		t.Fatalf("Failed to set up test database: %v", err)
 	}
@@ -450,35 +346,13 @@ func TestLoginShouldSucceedAfterEnteringCreateUserFlowAndBack(t *testing.T) {
 	test.InsertIntoUsers(t, db, existingUser)
 
 	// when
-	tm.Send(tea.KeyMsg{
-		Type:  tea.KeyRunes,
-		Runes: []rune(existingUsername),
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyTab,
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyTab,
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyDown,
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type:  tea.KeyRunes,
-		Runes: []rune(existingPassword),
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyEnter,
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyEnter,
-	})
+	test.TypeString(tm, existingUsername)
+	test.PressKey(tm, tea.KeyTab)
+	test.PressKey(tm, tea.KeyTab)
+	test.PressKey(tm, tea.KeyDown)
+	test.TypeString(tm, existingPassword)
+	test.PressKey(tm, tea.KeyEnter)
+	test.PressKey(tm, tea.KeyEnter)
 
 	// then
 	fm := tm.FinalModel(t)
