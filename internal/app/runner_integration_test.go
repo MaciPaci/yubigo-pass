@@ -52,7 +52,7 @@ func TestRunnerLoginShouldCancelExecution(t *testing.T) {
 	runner := NewRunner(serviceContainer)
 
 	// expected
-	expectedError := fmt.Errorf("login action failed: login action cancelled:\n")
+	expectedError := fmt.Errorf("login action failed: login action cancelled")
 
 	// when
 	err := runner.Run()
@@ -79,7 +79,7 @@ func TestRunnerLoginShouldEnterCreateUserActionAndCancelIt(t *testing.T) {
 	runner := NewRunner(serviceContainer)
 
 	// expected
-	expectedError := fmt.Errorf("create user action failed: create user action cancelled:\n")
+	expectedError := fmt.Errorf("create user action failed: create user action cancelled")
 
 	// when
 	err := runner.Run()

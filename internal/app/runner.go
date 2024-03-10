@@ -43,7 +43,7 @@ func (r *Runner) Run() error {
 		case loginAction:
 			createUserActionPicked, err := runLoginAction(r.serviceContainer)
 			if err != nil {
-				return fmt.Errorf("login action failed: %s:\n", err)
+				return fmt.Errorf("login action failed: %s", err)
 			}
 			if createUserActionPicked {
 				r.currentAction = createUserAction
@@ -54,7 +54,7 @@ func (r *Runner) Run() error {
 		case createUserAction:
 			userCreated, err := runCreateUserAction(r.serviceContainer)
 			if err != nil {
-				return fmt.Errorf("create user action failed: %s:\n", err)
+				return fmt.Errorf("create user action failed: %s", err)
 			}
 			if userCreated {
 				r.currentAction = loginAction
