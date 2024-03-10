@@ -32,26 +32,11 @@ type LoginModel struct {
 	inputs           []textinput.Model
 	showErr          bool
 	err              error
-	loggedIn         bool
-	cancelled        bool
-	createUserPicked bool
+	LoggedIn         bool
+	Cancelled        bool
+	CreateUserPicked bool
 
 	store database.StoreExecutor
-}
-
-// CreateUserActionPicked determines whether user selected create new user
-func (m LoginModel) CreateUserActionPicked() bool {
-	return m.createUserPicked
-}
-
-// LoggedInSuccessfully determines whether user logged in successfully
-func (m LoginModel) LoggedInSuccessfully() bool {
-	return m.loggedIn
-}
-
-// WasCancelled determines whether login action was cancelled
-func (m LoginModel) WasCancelled() bool {
-	return m.cancelled
 }
 
 // NewLoginModel returns model for user creation
@@ -97,7 +82,7 @@ func (m LoginModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyCtrlC, tea.KeyEsc:
-			m.cancelled = true
+			m.Cancelled = true
 			return m, tea.Quit
 
 		case tea.KeyTab, tea.KeyShiftTab:
@@ -123,7 +108,7 @@ func (m LoginModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			key := msg.Type
 			if m.state == createUserView {
 				if key == tea.KeyEnter {
-					m.createUserPicked = true
+					m.CreateUserPicked = true
 					return m, tea.Quit
 				}
 			} else {
@@ -135,7 +120,7 @@ func (m LoginModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						} else {
 							hashedPassword := crypto.HashPasswordWithSalt(m.inputs[1].Value(), user.Salt)
 							if hashedPassword == user.Password {
-								m.loggedIn = true
+								m.LoggedIn = true
 								return m, tea.Quit
 							} else {
 								m.err = fmt.Errorf("incorrect credentials")
@@ -209,7 +194,7 @@ func (m LoginModel) View() string {
 		}
 	}
 
-	if m.loggedIn {
+	if m.LoggedIn {
 		screenMsg = common.FontColor(fmt.Sprintf("%s Logged in\n", validateOkPrefix), colorValidateOk)
 	}
 

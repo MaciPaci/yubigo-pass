@@ -3,6 +3,7 @@
 package app
 
 import (
+	"fmt"
 	"testing"
 	"yubigo-pass/internal/app/crypto"
 	"yubigo-pass/internal/app/model"
@@ -15,6 +16,104 @@ import (
 	"github.com/charmbracelet/x/exp/teatest"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestRunnerLoginShouldSucceed(t *testing.T) {
+	// given
+	returnedModel := cli.NewLoginModel(test.NewStoreExecutorMock())
+	returnedModel.LoggedIn = true
+	serviceContainer := services.Container{
+		Store: test.NewStoreExecutorMock(),
+		Models: services.TeaModels{
+			Login:      test.NewTeaModelMock().WillReturnOnce(returnedModel),
+			CreateUser: test.NewTeaModelMock(),
+		},
+	}
+	runner := NewRunner(serviceContainer)
+
+	// when
+	err := runner.Run()
+
+	// then
+	assert.NoError(t, err)
+	assert.Equal(t, loginAction, runner.currentAction)
+}
+
+func TestRunnerLoginShouldCancelExecution(t *testing.T) {
+	// given
+	returnedModel := cli.NewLoginModel(test.NewStoreExecutorMock())
+	returnedModel.Cancelled = true
+	serviceContainer := services.Container{
+		Store: test.NewStoreExecutorMock(),
+		Models: services.TeaModels{
+			Login:      test.NewTeaModelMock().WillReturnOnce(returnedModel),
+			CreateUser: test.NewTeaModelMock(),
+		},
+	}
+	runner := NewRunner(serviceContainer)
+
+	// expected
+	expectedError := fmt.Errorf("login action failed: login action cancelled:\n")
+
+	// when
+	err := runner.Run()
+
+	// then
+	assert.Error(t, err)
+	assert.Equal(t, expectedError, err)
+	assert.Equal(t, loginAction, runner.currentAction)
+}
+
+func TestRunnerLoginShouldEnterCreateUserActionAndCancelIt(t *testing.T) {
+	// given
+	returnedLoginModel := cli.NewLoginModel(test.NewStoreExecutorMock())
+	returnedLoginModel.CreateUserPicked = true
+	returnedCreateUserModel := cli.NewCreateUserModel(test.NewStoreExecutorMock())
+	returnedCreateUserModel.Cancelled = true
+	serviceContainer := services.Container{
+		Store: test.NewStoreExecutorMock(),
+		Models: services.TeaModels{
+			Login:      test.NewTeaModelMock().WillReturnOnce(returnedLoginModel),
+			CreateUser: test.NewTeaModelMock().WillReturnOnce(returnedCreateUserModel),
+		},
+	}
+	runner := NewRunner(serviceContainer)
+
+	// expected
+	expectedError := fmt.Errorf("create user action failed: create user action cancelled:\n")
+
+	// when
+	err := runner.Run()
+
+	// then
+	assert.Error(t, err)
+	assert.Equal(t, expectedError, err)
+	assert.Equal(t, createUserAction, runner.currentAction)
+}
+
+func TestRunnerLoginShouldEnterCreateUserActionAndBackToLogin(t *testing.T) {
+	// given
+	returnedLoginModelFirst := cli.NewLoginModel(test.NewStoreExecutorMock())
+	returnedLoginModelFirst.CreateUserPicked = true
+	returnedLoginModelSecond := cli.NewLoginModel(test.NewStoreExecutorMock())
+	returnedLoginModelSecond.LoggedIn = true
+	returnedCreateUserModel := cli.NewCreateUserModel(test.NewStoreExecutorMock())
+	returnedCreateUserModel.UserCreated = true
+	serviceContainer := services.Container{
+		Store: test.NewStoreExecutorMock(),
+		Models: services.TeaModels{
+			Login:      test.NewTeaModelMock().WillReturnOnce(returnedLoginModelFirst).WillReturnOnce(returnedLoginModelSecond),
+			CreateUser: test.NewTeaModelMock().WillReturnOnce(returnedCreateUserModel),
+		},
+	}
+	runner := NewRunner(serviceContainer)
+
+	// when
+	err := runner.Run()
+
+	// then
+	assert.NoError(t, err)
+	assert.Equal(t, loginAction, runner.currentAction)
+}
 
 func TestCreateUserFlowShouldCreateNewUserInDB(t *testing.T) {
 	// setup

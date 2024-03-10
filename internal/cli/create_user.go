@@ -34,8 +34,8 @@ type CreateUserModel struct {
 	inputs      []textinput.Model
 	showErr     bool
 	err         error
-	cancelled   bool
-	userCreated bool
+	Cancelled   bool
+	UserCreated bool
 
 	store database.StoreExecutor
 }
@@ -43,16 +43,6 @@ type CreateUserModel struct {
 // ExtractDataFromModel maps data from the model into strings
 func ExtractDataFromModel(m tea.Model) (string, string) {
 	return m.(CreateUserModel).inputs[0].Value(), m.(CreateUserModel).inputs[1].Value()
-}
-
-// WasUserCreated determines whether user was created during create user action
-func (m CreateUserModel) WasUserCreated() bool {
-	return m.userCreated
-}
-
-// WasCancelled determines whether create user action was cancelled
-func (m CreateUserModel) WasCancelled() bool {
-	return m.cancelled
 }
 
 // NewCreateUserModel returns model for user creation
@@ -97,7 +87,7 @@ func (m CreateUserModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyCtrlC, tea.KeyEsc:
-			m.cancelled = true
+			m.Cancelled = true
 			return m, tea.Quit
 
 		case tea.KeyTab, tea.KeyShiftTab, tea.KeyEnter, tea.KeyUp, tea.KeyDown, tea.KeyPgDown:
@@ -107,7 +97,7 @@ func (m CreateUserModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if m.err == nil {
 					user, _ := m.store.GetUser(m.inputs[0].Value())
 					if user.Username == "" {
-						m.userCreated = true
+						m.UserCreated = true
 						return m, tea.Quit
 					}
 					m.err = fmt.Errorf("username already exists")
@@ -179,7 +169,7 @@ func (m CreateUserModel) View() string {
 		}
 	}
 
-	if m.userCreated {
+	if m.UserCreated {
 		screenMsg = common.FontColor(fmt.Sprintf("%s User created successfully\n", validateOkPrefix), colorValidateOk)
 	}
 

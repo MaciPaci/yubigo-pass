@@ -46,7 +46,7 @@ func TestShouldQuitLoginAction(t *testing.T) {
 				fm := tm.FinalModel(t)
 				m, ok := fm.(LoginModel)
 				assert.Truef(t, ok, "final model has wrong type: %T", fm)
-				assert.Truef(t, m.WasCancelled(), "final model is not cancelled")
+				assert.Truef(t, m.Cancelled, "final model is not Cancelled")
 				tm.WaitFinished(t, teatest.WithFinalTimeout(time.Millisecond*100))
 			},
 		)
@@ -95,7 +95,7 @@ func TestLoginShouldSucceed(t *testing.T) {
 	fm := tm.FinalModel(t)
 	m, ok := fm.(LoginModel)
 	assert.True(t, ok)
-	assert.True(t, m.LoggedInSuccessfully())
+	assert.True(t, m.LoggedIn)
 
 	out, err := io.ReadAll(tm.FinalOutput(t))
 	if err != nil {
@@ -309,7 +309,7 @@ func TestLoginShouldEnterCreateUserAction(t *testing.T) {
 	fm := tm.FinalModel(t)
 	m, ok := fm.(LoginModel)
 	assert.True(t, ok)
-	assert.True(t, m.CreateUserActionPicked())
+	assert.True(t, m.CreateUserPicked)
 
 	tm.WaitFinished(t, teatest.WithFinalTimeout(time.Second))
 }
@@ -358,7 +358,7 @@ func TestLoginShouldSucceedAfterEnteringCreateUserFlowAndBack(t *testing.T) {
 	fm := tm.FinalModel(t)
 	m, ok := fm.(LoginModel)
 	assert.True(t, ok)
-	assert.True(t, m.LoggedInSuccessfully())
+	assert.True(t, m.LoggedIn)
 
 	out, err := io.ReadAll(tm.FinalOutput(t))
 	if err != nil {
