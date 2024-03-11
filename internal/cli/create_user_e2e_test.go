@@ -211,7 +211,7 @@ func TestShouldNotCreateUserIfUsernameAlreadyExists(t *testing.T) {
 	)
 }
 
-func TestShouldAbortCreateUserAction(t *testing.T) {
+func TestShouldAbortCreateUserActionAfterGoingBackAndForth(t *testing.T) {
 	// given
 	tm := teatest.NewTestModel(
 		t,
@@ -220,6 +220,8 @@ func TestShouldAbortCreateUserAction(t *testing.T) {
 	)
 
 	// when
+	test.PressKey(tm, tea.KeyTab)
+	test.PressKey(tm, tea.KeyTab)
 	test.PressKey(tm, tea.KeyTab)
 	test.PressKey(tm, tea.KeyEnter)
 
