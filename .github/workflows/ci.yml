@@ -8,6 +8,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Run a multi-line script
+        shell: 'script -q -e -c "bash {0}"'
+        run: |
+          perl -E 'say "Is STDOUT a TTY?: ", -t STDOUT ? "yes" : "no"'
+
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
