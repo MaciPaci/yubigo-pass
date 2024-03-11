@@ -33,6 +33,10 @@ func TestRunnerLoginShouldSucceed(t *testing.T) {
 	// when
 	err := runner.Run()
 
+	// this is a workaround so that gotest to correctly catch PASS message
+	// it is awful and I hate it, but it works
+	fmt.Println('\n')
+
 	// then
 	assert.NoError(t, err)
 	assert.Equal(t, loginAction, runner.currentAction)
@@ -56,6 +60,10 @@ func TestRunnerLoginShouldCancelExecution(t *testing.T) {
 
 	// when
 	err := runner.Run()
+
+	// this is a workaround so that gotest to correctly catch PASS message
+	// it is awful and I hate it, but it works
+	fmt.Println('\n')
 
 	// then
 	assert.Error(t, err)
@@ -84,6 +92,10 @@ func TestRunnerLoginShouldEnterCreateUserActionAndCancelIt(t *testing.T) {
 	// when
 	err := runner.Run()
 
+	// this is a workaround so that gotest to correctly catch PASS message
+	// it is awful and I hate it, but it works
+	fmt.Println('\n')
+
 	// then
 	assert.Error(t, err)
 	assert.Equal(t, expectedError, err)
@@ -109,6 +121,10 @@ func TestRunnerLoginShouldEnterCreateUserActionAndBackToLogin(t *testing.T) {
 
 	// when
 	err := runner.Run()
+
+	// this is a workaround so that gotest to correctly catch PASS message
+	// it is awful and I hate it, but it works
+	fmt.Println('\n')
 
 	// then
 	assert.NoError(t, err)
