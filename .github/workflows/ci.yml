@@ -9,7 +9,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Run a multi-line script
-#        shell: 'script -q -e -c "bash {0}"'
+        shell: 'script -q -e -c "bash {0}"'
         run: |
           perl -E 'say "Is STDOUT a TTY?: ", -t STDOUT ? "yes" : "no"'
 
@@ -73,6 +73,7 @@ jobs:
           if-no-files-found: error
 
       - name: Test:integration
+        shell: 'script -q -e -c "bash {0}"'
         run: |
           set -euo pipefail
           go test -json -v ./... -coverprofile coverage_integration.out -covermode count -tags=integration 2>&1 | tee /tmp/gotest_integration.log | gotestfmt
