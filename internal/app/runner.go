@@ -41,22 +41,22 @@ func (r *Runner) Run() error {
 	for {
 		switch r.currentAction {
 		case loginAction:
-			createUserActionPicked, err := runLoginAction(r.serviceContainer)
+			m, err := runLoginAction(r.serviceContainer)
 			if err != nil {
 				return fmt.Errorf("login action failed: %s", err)
 			}
-			if createUserActionPicked {
+			if m.CreateUserPicked {
 				r.currentAction = createUserAction
 				continue
 			}
 			return nil
 
 		case createUserAction:
-			userCreated, err := runCreateUserAction(r.serviceContainer)
+			m, err := runCreateUserAction(r.serviceContainer)
 			if err != nil {
 				return fmt.Errorf("create user action failed: %s", err)
 			}
-			if userCreated {
+			if m.UserCreated || m.UserCreationAborted {
 				r.currentAction = loginAction
 				continue
 			}
@@ -65,32 +65,37 @@ func (r *Runner) Run() error {
 	}
 }
 
-func runLoginAction(serviceContainer services.Container) (bool, error) {
+func runLoginAction(serviceContainer services.Container) (cli.LoginModel, error) {
 	m, err := tea.NewProgram(serviceContainer.Models.Login).Run()
+	loginModel := m.(cli.LoginModel)
 	if err != nil {
-		return false, fmt.Errorf("could not start login action: %w", err)
+		return loginModel, fmt.Errorf("could not start login action: %w", err)
 	}
-	if m.(cli.LoginModel).Cancelled {
-		return false, fmt.Errorf("login action cancelled")
+	if loginModel.Cancelled {
+		return loginModel, fmt.Errorf("login action cancelled")
 	}
-	return m.(cli.LoginModel).CreateUserPicked, err
+	return loginModel, err
 }
 
-func runCreateUserAction(serviceContainer services.Container) (bool, error) {
+func runCreateUserAction(serviceContainer services.Container) (cli.CreateUserModel, error) {
 	m, err := tea.NewProgram(serviceContainer.Models.CreateUser).Run()
+	createUserModel := m.(cli.CreateUserModel)
 	if err != nil {
-		return false, fmt.Errorf("could not start create user action: %w", err)
+		return createUserModel, fmt.Errorf("could not start create user action: %w", err)
 	}
 	if m.(cli.CreateUserModel).Cancelled {
-		return false, fmt.Errorf("create user action cancelled")
+		return createUserModel, fmt.Errorf("create user action cancelled")
+	}
+	if m.(cli.CreateUserModel).UserCreationAborted {
+		return createUserModel, nil
 	}
 
 	err = createNewUser(serviceContainer, m)
 	if err != nil {
-		return false, err
+		return createUserModel, err
 	}
 
-	return m.(cli.CreateUserModel).UserCreated, nil
+	return createUserModel, nil
 }
 
 func createNewUser(serviceContainer services.Container, m tea.Model) error {

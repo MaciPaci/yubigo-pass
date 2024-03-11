@@ -73,7 +73,7 @@ func TestShouldCreateUser(t *testing.T) {
 	test.TypeString(tm, exampleUsername)
 	test.PressKey(tm, tea.KeyDown)
 	test.TypeString(tm, examplePassword)
-	test.PressKey(tm, tea.KeyTab)
+	test.PressKey(tm, tea.KeyDown)
 	test.PressKey(tm, tea.KeyEnter)
 
 	// then
@@ -106,7 +106,7 @@ func TestShouldNotCreateUserWithEmptyUsername(t *testing.T) {
 	// when
 	test.PressKey(tm, tea.KeyDown)
 	test.TypeString(tm, examplePassword)
-	test.PressKey(tm, tea.KeyTab)
+	test.PressKey(tm, tea.KeyDown)
 	test.PressKey(tm, tea.KeyEnter)
 
 	// then
@@ -133,7 +133,7 @@ func TestShouldNotCreateUserWithEmptyPassword(t *testing.T) {
 	// when
 	test.TypeString(tm, exampleUsername)
 	test.PressKey(tm, tea.KeyDown)
-	test.PressKey(tm, tea.KeyTab)
+	test.PressKey(tm, tea.KeyDown)
 	test.PressKey(tm, tea.KeyEnter)
 
 	// then
@@ -196,7 +196,7 @@ func TestShouldNotCreateUserIfUsernameAlreadyExists(t *testing.T) {
 	test.TypeString(tm, existingUsername)
 	test.PressKey(tm, tea.KeyDown)
 	test.TypeString(tm, examplePassword)
-	test.PressKey(tm, tea.KeyTab)
+	test.PressKey(tm, tea.KeyDown)
 	test.PressKey(tm, tea.KeyEnter)
 
 	// then
@@ -209,4 +209,25 @@ func TestShouldNotCreateUserIfUsernameAlreadyExists(t *testing.T) {
 		teatest.WithCheckInterval(time.Millisecond*100),
 		teatest.WithDuration(time.Second*1),
 	)
+}
+
+func TestShouldAbortCreateUserAction(t *testing.T) {
+	// given
+	tm := teatest.NewTestModel(
+		t,
+		NewCreateUserModel(test.NewStoreExecutorMock()),
+		teatest.WithInitialTermSize(300, 100),
+	)
+
+	// when
+	test.PressKey(tm, tea.KeyTab)
+	test.PressKey(tm, tea.KeyEnter)
+
+	// then
+	fm := tm.FinalModel(t)
+	m, ok := fm.(CreateUserModel)
+	assert.True(t, ok)
+	assert.True(t, m.UserCreationAborted)
+
+	tm.WaitFinished(t, teatest.WithFinalTimeout(time.Second))
 }

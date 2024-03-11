@@ -131,6 +131,35 @@ func TestRunnerLoginShouldEnterCreateUserActionAndBackToLogin(t *testing.T) {
 	assert.Equal(t, loginAction, runner.currentAction)
 }
 
+func TestRunnerLoginShouldEnterCreateUserActionAndAbortIt(t *testing.T) {
+	// given
+	returnedLoginModelFirst := cli.NewLoginModel(test.NewStoreExecutorMock())
+	returnedLoginModelFirst.CreateUserPicked = true
+	returnedLoginModelSecond := cli.NewLoginModel(test.NewStoreExecutorMock())
+	returnedLoginModelSecond.LoggedIn = true
+	returnedCreateUserModel := cli.NewCreateUserModel(test.NewStoreExecutorMock())
+	returnedCreateUserModel.UserCreationAborted = true
+	serviceContainer := services.Container{
+		Store: test.NewStoreExecutorMock(),
+		Models: services.TeaModels{
+			Login:      test.NewTeaModelMock().WillReturnOnce(returnedLoginModelFirst).WillReturnOnce(returnedLoginModelSecond),
+			CreateUser: test.NewTeaModelMock().WillReturnOnce(returnedCreateUserModel),
+		},
+	}
+	runner := NewRunner(serviceContainer)
+
+	// when
+	err := runner.Run()
+
+	// this is a workaround so that gotest to correctly catch PASS message
+	// it is awful and I hate it, but it works
+	fmt.Println('\n')
+
+	// then
+	assert.NoError(t, err)
+	assert.Equal(t, loginAction, runner.currentAction)
+}
+
 func TestCreateUserFlowShouldCreateNewUserInDB(t *testing.T) {
 	// setup
 	db, err := test.SetupTestDB()

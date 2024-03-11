@@ -11,23 +11,23 @@ import (
 	"github.com/mritd/bubbles/common"
 )
 
-type sessionState uint
+type sessionStateLogin uint
 
 const (
-	loginView sessionState = iota
-	createUserView
+	loginState sessionStateLogin = iota
+	createUserButtonFocused
 )
 
 var (
 	focusedLoginButton      = focusedStyle.Copy().Render("[ Login ]")
 	blurredLoginButton      = fmt.Sprintf("[ %s ]", blurredStyle.Render("Login"))
-	focusedCreateUserButton = focusedStyle.Copy().Render("[ New user ]")
-	blurredCreateUserButton = fmt.Sprintf("[ %s ]", blurredStyle.Render("New user"))
+	focusedCreateUserButton = focusedStyle.Copy().Render("[ Create new user ]")
+	blurredCreateUserButton = fmt.Sprintf("[ %s ]", blurredStyle.Render("Create new user"))
 )
 
 // LoginModel is a model for user login
 type LoginModel struct {
-	state            sessionState
+	state            sessionStateLogin
 	focusIndex       int
 	inputs           []textinput.Model
 	showErr          bool
@@ -42,7 +42,7 @@ type LoginModel struct {
 // NewLoginModel returns model for user creation
 func NewLoginModel(store database.StoreExecutor) LoginModel {
 	m := LoginModel{
-		state:  loginView,
+		state:  loginState,
 		inputs: make([]textinput.Model, 2),
 		store:  store,
 	}
@@ -73,6 +73,10 @@ func NewLoginModel(store database.StoreExecutor) LoginModel {
 
 // Init initializes for LoginModel
 func (m LoginModel) Init() tea.Cmd {
+	m.inputs[0].Focus()
+	for i := range m.inputs {
+		m.inputs[i].SetValue("")
+	}
 	return textinput.Blink
 }
 
@@ -86,8 +90,8 @@ func (m LoginModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case tea.KeyTab, tea.KeyShiftTab:
-			if m.state == loginView {
-				m.state = createUserView
+			if m.state == loginState {
+				m.state = createUserButtonFocused
 				for i := 0; i <= len(m.inputs)-1; i++ {
 					m.inputs[i].Blur()
 					m.inputs[i].PromptStyle = noStyle
@@ -95,7 +99,7 @@ func (m LoginModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			} else {
 				var cmd tea.Cmd
-				m.state = loginView
+				m.state = loginState
 				if m.focusIndex != len(m.inputs) {
 					m.inputs[m.focusIndex].PromptStyle = focusedStyle
 					m.inputs[m.focusIndex].TextStyle = focusedStyle
@@ -106,7 +110,7 @@ func (m LoginModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case tea.KeyEnter, tea.KeyUp, tea.KeyDown, tea.KeyPgDown:
 			key := msg.Type
-			if m.state == createUserView {
+			if m.state == createUserButtonFocused {
 				if key == tea.KeyEnter {
 					m.CreateUserPicked = true
 					return m, tea.Quit
@@ -143,7 +147,7 @@ func (m LoginModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 
 				cmds := make([]tea.Cmd, len(m.inputs))
-				if m.state == loginView {
+				if m.state == loginState {
 					for i := 0; i <= len(m.inputs)-1; i++ {
 						if i == m.focusIndex {
 							cmds[i] = m.inputs[i].Focus()
@@ -187,6 +191,8 @@ func updateLoginModelInputs(m *LoginModel, msg tea.Msg) tea.Cmd {
 func (m LoginModel) View() string {
 	var b strings.Builder
 
+	b.WriteString("\n---------------LOGIN---------------\n\n")
+
 	var screenMsg string
 	if m.err != nil {
 		if m.showErr {
@@ -207,11 +213,11 @@ func (m LoginModel) View() string {
 
 	loginButton := &blurredLoginButton
 	createUserButton := &blurredCreateUserButton
-	if m.focusIndex == len(m.inputs) && m.state == loginView {
+	if m.focusIndex == len(m.inputs) && m.state == loginState {
 		loginButton = &focusedLoginButton
 		createUserButton = &blurredCreateUserButton
 	}
-	if m.state == createUserView {
+	if m.state == createUserButtonFocused {
 		loginButton = &blurredLoginButton
 		createUserButton = &focusedCreateUserButton
 	}
