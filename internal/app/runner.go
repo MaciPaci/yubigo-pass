@@ -83,14 +83,14 @@ func runCreateUserAction(serviceContainer services.Container) (cli.CreateUserMod
 	if err != nil {
 		return createUserModel, fmt.Errorf("could not start create user action: %w", err)
 	}
-	if m.(cli.CreateUserModel).Cancelled {
+	if createUserModel.Cancelled {
 		return createUserModel, fmt.Errorf("create user action cancelled")
 	}
-	if m.(cli.CreateUserModel).UserCreationAborted {
+	if createUserModel.UserCreationAborted {
 		return createUserModel, nil
 	}
 
-	err = createNewUser(serviceContainer, m)
+	err = createNewUser(serviceContainer, createUserModel)
 	if err != nil {
 		return createUserModel, err
 	}
