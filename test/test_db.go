@@ -52,7 +52,7 @@ func TeardownTestDB(db *sqlx.DB) {
 	_ = db.Close()
 }
 
-// InsertIntoUsers inserts record into users database for tests only
+// InsertIntoUsers inserts record into users database for testing purposes
 func InsertIntoUsers(t *testing.T, db *sqlx.DB, input model.User) {
 	query := `INSERT INTO users (id, username, password, salt) VALUES ($1, $2, $3, $4)`
 
@@ -60,4 +60,17 @@ func InsertIntoUsers(t *testing.T, db *sqlx.DB, input model.User) {
 	if err != nil {
 		t.Fatalf("failed to create user: %s", err)
 	}
+}
+
+// GetUser fetches user by username for testing purposes
+func GetUser(t *testing.T, db *sqlx.DB, username string) model.User {
+	query := `SELECT * FROM users where username = $1`
+
+	var user model.User
+	err := db.QueryRowx(query, username).StructScan(&user)
+	if err != nil {
+		t.Fatalf("failed to get user: %s", err)
+	}
+
+	return user
 }

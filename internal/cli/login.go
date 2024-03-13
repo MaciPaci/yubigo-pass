@@ -3,63 +3,46 @@ package cli
 import (
 	"fmt"
 	"strings"
+	"yubigo-pass/internal/app/crypto"
 	"yubigo-pass/internal/database"
-
-	"github.com/mritd/bubbles/common"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"github.com/mritd/bubbles/common"
 )
 
-type sessionStateCreateUser uint
+type sessionStateLogin uint
 
 const (
-	createUserState sessionStateCreateUser = iota
-	backButtonFocused
+	loginState sessionStateLogin = iota
+	createUserButtonFocused
 )
 
 var (
-	focusedStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
-	blurredStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
-	cursorStyle         = focusedStyle.Copy()
-	noStyle             = lipgloss.NewStyle()
-	focusedSubmitButton = focusedStyle.Copy().Render("[ Submit ]")
-	blurredSubmitButton = fmt.Sprintf("[ %s ]", blurredStyle.Render("Submit"))
-	focusedBackButton   = focusedStyle.Copy().Render("[ Back ]")
-	blurredBackButton   = fmt.Sprintf("[ %s ]", blurredStyle.Render("Back"))
+	focusedLoginButton      = focusedStyle.Copy().Render("[ Login ]")
+	blurredLoginButton      = fmt.Sprintf("[ %s ]", blurredStyle.Render("Login"))
+	focusedCreateUserButton = focusedStyle.Copy().Render("[ Create new user ]")
+	blurredCreateUserButton = fmt.Sprintf("[ %s ]", blurredStyle.Render("Create new user"))
 )
 
-const (
-	validateOkPrefix  = "✔"
-	validateErrPrefix = "✘"
-	colorValidateOk   = "2"
-	colorValidateErr  = "1"
-)
-
-// CreateUserModel is a model for user creation
-type CreateUserModel struct {
-	state               sessionStateCreateUser
-	focusIndex          int
-	inputs              []textinput.Model
-	showErr             bool
-	err                 error
-	Cancelled           bool
-	UserCreated         bool
-	UserCreationAborted bool
+// LoginModel is a model for user login
+type LoginModel struct {
+	state            sessionStateLogin
+	focusIndex       int
+	inputs           []textinput.Model
+	showErr          bool
+	err              error
+	LoggedIn         bool
+	Cancelled        bool
+	CreateUserPicked bool
 
 	store database.StoreExecutor
 }
 
-// ExtractDataFromModel maps data from the model into strings
-func ExtractDataFromModel(m tea.Model) (string, string) {
-	return m.(CreateUserModel).inputs[0].Value(), m.(CreateUserModel).inputs[1].Value()
-}
-
-// NewCreateUserModel returns model for user creation
-func NewCreateUserModel(store database.StoreExecutor) CreateUserModel {
-	m := CreateUserModel{
-		state:  createUserState,
+// NewLoginModel returns model for user creation
+func NewLoginModel(store database.StoreExecutor) LoginModel {
+	m := LoginModel{
+		state:  loginState,
 		inputs: make([]textinput.Model, 2),
 		store:  store,
 	}
@@ -88,8 +71,8 @@ func NewCreateUserModel(store database.StoreExecutor) CreateUserModel {
 	return m
 }
 
-// Init initializes for CreateUserModel
-func (m CreateUserModel) Init() tea.Cmd {
+// Init initializes for LoginModel
+func (m LoginModel) Init() tea.Cmd {
 	m.inputs[0].Focus()
 	for i := range m.inputs {
 		m.inputs[i].SetValue("")
@@ -97,8 +80,8 @@ func (m CreateUserModel) Init() tea.Cmd {
 	return textinput.Blink
 }
 
-// Update updates CreateUserModel
-func (m CreateUserModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+// Update updates LoginModel
+func (m LoginModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.Type {
@@ -107,8 +90,8 @@ func (m CreateUserModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case tea.KeyTab, tea.KeyShiftTab:
-			if m.state == createUserState {
-				m.state = backButtonFocused
+			if m.state == loginState {
+				m.state = createUserButtonFocused
 				for i := 0; i <= len(m.inputs)-1; i++ {
 					m.inputs[i].Blur()
 					m.inputs[i].PromptStyle = noStyle
@@ -116,7 +99,7 @@ func (m CreateUserModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			} else {
 				var cmd tea.Cmd
-				m.state = createUserState
+				m.state = loginState
 				if m.focusIndex != len(m.inputs) {
 					m.inputs[m.focusIndex].PromptStyle = focusedStyle
 					m.inputs[m.focusIndex].TextStyle = focusedStyle
@@ -127,10 +110,9 @@ func (m CreateUserModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case tea.KeyEnter, tea.KeyUp, tea.KeyDown, tea.KeyPgDown:
 			key := msg.Type
-
-			if m.state == backButtonFocused {
+			if m.state == createUserButtonFocused {
 				if key == tea.KeyEnter {
-					m.UserCreationAborted = true
+					m.CreateUserPicked = true
 					return m, tea.Quit
 				}
 			} else {
@@ -138,15 +120,20 @@ func (m CreateUserModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					if m.err == nil {
 						user, _ := m.store.GetUser(m.inputs[0].Value())
 						if user.Username == "" {
-							m.UserCreated = true
-							return m, tea.Quit
+							m.err = fmt.Errorf("incorrect credentials")
+						} else {
+							hashedPassword := crypto.HashPasswordWithSalt(m.inputs[1].Value(), user.Salt)
+							if hashedPassword == user.Password {
+								m.LoggedIn = true
+								return m, tea.Quit
+							} else {
+								m.err = fmt.Errorf("incorrect credentials")
+							}
 						}
-						m.err = fmt.Errorf("username already exists")
 					}
 					m.showErr = true
 				}
 
-				// Cycle indexes
 				if key == tea.KeyUp {
 					m.focusIndex--
 				} else {
@@ -160,16 +147,14 @@ func (m CreateUserModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 
 				cmds := make([]tea.Cmd, len(m.inputs))
-				if m.state == createUserState {
+				if m.state == loginState {
 					for i := 0; i <= len(m.inputs)-1; i++ {
 						if i == m.focusIndex {
-							// Set focused state
 							cmds[i] = m.inputs[i].Focus()
 							m.inputs[i].PromptStyle = focusedStyle
 							m.inputs[i].TextStyle = focusedStyle
 							continue
 						}
-						// Remove focused state
 						m.inputs[i].Blur()
 						m.inputs[i].PromptStyle = noStyle
 						m.inputs[i].TextStyle = noStyle
@@ -178,18 +163,19 @@ func (m CreateUserModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				return m, tea.Batch(cmds...)
 			}
+
 		case tea.KeyRunes:
 			m.showErr = false
 			m.err = nil
 		}
 	}
-	cmd := updateCreateUserModelInputs(&m, msg)
-	m.err = validateCreateUserModelInputs(m.inputs, m.err)
+	cmd := updateLoginModelInputs(&m, msg)
+	m.err = validateLoginModelInputs(m.inputs, m.err)
 
 	return m, cmd
 }
 
-func updateCreateUserModelInputs(m *CreateUserModel, msg tea.Msg) tea.Cmd {
+func updateLoginModelInputs(m *LoginModel, msg tea.Msg) tea.Cmd {
 	cmds := make([]tea.Cmd, len(m.inputs))
 
 	// Only text inputs with Focus() set will respond, so it's safe to simply
@@ -201,11 +187,11 @@ func updateCreateUserModelInputs(m *CreateUserModel, msg tea.Msg) tea.Cmd {
 	return tea.Batch(cmds...)
 }
 
-// View renders CreateUserModel
-func (m CreateUserModel) View() string {
+// View renders LoginModel
+func (m LoginModel) View() string {
 	var b strings.Builder
 
-	b.WriteString("\n----------CREATE NEW USER----------\n\n")
+	b.WriteString("\n---------------LOGIN---------------\n\n")
 
 	var screenMsg string
 	if m.err != nil {
@@ -214,8 +200,8 @@ func (m CreateUserModel) View() string {
 		}
 	}
 
-	if m.UserCreated {
-		screenMsg = common.FontColor(fmt.Sprintf("%s User created successfully\n", validateOkPrefix), colorValidateOk)
+	if m.LoggedIn {
+		screenMsg = common.FontColor(fmt.Sprintf("%s Logged in\n", validateOkPrefix), colorValidateOk)
 	}
 
 	for i := range m.inputs {
@@ -225,23 +211,23 @@ func (m CreateUserModel) View() string {
 		}
 	}
 
-	createUserButton := &blurredSubmitButton
-	backButton := &blurredBackButton
-	if m.focusIndex == len(m.inputs) && m.state == createUserState {
-		createUserButton = &focusedSubmitButton
-		backButton = &blurredBackButton
+	loginButton := &blurredLoginButton
+	createUserButton := &blurredCreateUserButton
+	if m.focusIndex == len(m.inputs) && m.state == loginState {
+		loginButton = &focusedLoginButton
+		createUserButton = &blurredCreateUserButton
 	}
-	if m.state == backButtonFocused {
-		createUserButton = &blurredSubmitButton
-		backButton = &focusedBackButton
+	if m.state == createUserButtonFocused {
+		loginButton = &blurredLoginButton
+		createUserButton = &focusedCreateUserButton
 	}
 
-	fmt.Fprintf(&b, "\n\n%s\t%s\n%s\n", *createUserButton, *backButton, screenMsg)
+	fmt.Fprintf(&b, "\n\n%s\t%s\n%s\n", *loginButton, *createUserButton, screenMsg)
 
 	return b.String()
 }
 
-func validateCreateUserModelInputs(input []textinput.Model, err error) error {
+func validateLoginModelInputs(input []textinput.Model, err error) error {
 	if err != nil {
 		return err
 	}

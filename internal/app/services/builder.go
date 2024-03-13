@@ -14,10 +14,10 @@ func Build() Container {
 		logrus.Fatalf("error building database: %s", err)
 	}
 	store := database.NewStore(db)
-	programs := InitPrograms(store)
+	teaModels := InitTeaModels(store)
 
 	return Container{
-		Store:    store,
-		Programs: programs,
+		Store:  store,
+		Models: teaModels,
 	}
 }

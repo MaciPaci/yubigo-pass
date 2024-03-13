@@ -2,7 +2,6 @@ package app
 
 import (
 	"fmt"
-	"os"
 	"yubigo-pass/internal/app/crypto"
 	"yubigo-pass/internal/app/model"
 	"yubigo-pass/internal/app/services"
@@ -12,33 +11,91 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 )
 
-// Run runs the application
-func Run() {
-	serviceContainer := services.Build()
-	defer database.CloseDB()
+type programAction int
 
-	err := runCreateUserFlow(serviceContainer)
-	if err != nil {
-		logrus.Errorf("create user flow failed: %s:\n", err)
-		os.Exit(1)
+const (
+	loginAction programAction = iota
+	createUserAction
+)
+
+// Runner is a program flow execution controller
+type Runner struct {
+	currentAction    programAction
+	serviceContainer services.Container
+}
+
+// NewRunner returns new Runner instance
+func NewRunner(serviceContainer services.Container) *Runner {
+	return &Runner{
+		currentAction:    loginAction,
+		serviceContainer: serviceContainer,
 	}
 }
 
-func runCreateUserFlow(serviceContainer services.Container) error {
-	m, err := serviceContainer.Programs.CreateUserProgram.Run()
+// Run runs the application
+func (r *Runner) Run() error {
+	defer database.CloseDB()
+
+	for {
+		switch r.currentAction {
+		case loginAction:
+			m, err := runLoginAction(r.serviceContainer)
+			if err != nil {
+				return fmt.Errorf("login action failed: %s", err)
+			}
+			if m.CreateUserPicked {
+				r.currentAction = createUserAction
+				continue
+			}
+			return nil
+
+		case createUserAction:
+			m, err := runCreateUserAction(r.serviceContainer)
+			if err != nil {
+				return fmt.Errorf("create user action failed: %s", err)
+			}
+			if m.UserCreated || m.UserCreationAborted {
+				r.currentAction = loginAction
+				continue
+			}
+			return nil
+		}
+	}
+}
+
+func runLoginAction(serviceContainer services.Container) (cli.LoginModel, error) {
+	m, err := tea.NewProgram(serviceContainer.Models.Login).Run()
+	loginModel := m.(cli.LoginModel)
 	if err != nil {
-		return fmt.Errorf("could not start program: %w", err)
+		return loginModel, fmt.Errorf("could not start login action: %w", err)
+	}
+	if loginModel.Cancelled {
+		return loginModel, fmt.Errorf("login action cancelled")
+	}
+	return loginModel, err
+}
+
+func runCreateUserAction(serviceContainer services.Container) (cli.CreateUserModel, error) {
+	m, err := tea.NewProgram(serviceContainer.Models.CreateUser).Run()
+	createUserModel := m.(cli.CreateUserModel)
+	if err != nil {
+		return createUserModel, fmt.Errorf("could not start create user action: %w", err)
+	}
+	if createUserModel.Cancelled {
+		return createUserModel, fmt.Errorf("create user action cancelled")
+	}
+	if createUserModel.UserCreationAborted {
+		return createUserModel, nil
 	}
 
-	err = createNewUser(serviceContainer, m)
+	err = createNewUser(serviceContainer, createUserModel)
 	if err != nil {
-		return err
+		return createUserModel, err
 	}
 
-	return nil
+	return createUserModel, nil
 }
 
 func createNewUser(serviceContainer services.Container, m tea.Model) error {

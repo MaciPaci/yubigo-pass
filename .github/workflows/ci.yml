@@ -68,6 +68,8 @@ jobs:
           if-no-files-found: error
 
       - name: Test:integration
+        # needed for a tty issue in a pipeline
+        shell: 'script -q -e -c "bash {0}"'
         run: |
           set -euo pipefail
           go test -json -v ./... -coverprofile coverage_integration.out -covermode count -tags=integration 2>&1 | tee /tmp/gotest_integration.log | gotestfmt
@@ -102,6 +104,13 @@ jobs:
           $HOME/go/bin/gocovmerge coverage_unit.out coverage_integration.out coverage_e2e.out > coverage_combined.out
           go tool cover -func coverage_combined.out
           goveralls -coverprofile=coverage_combined.out -service=github
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage_combined.out
+          if-no-files-found: error
 
   security:
     runs-on: ubuntu-latest

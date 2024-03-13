@@ -2,11 +2,6 @@ package test
 
 import "yubigo-pass/internal/app/model"
 
-const (
-	// ExistingUsername is username stub for StoreExecutorMock
-	ExistingUsername = "existingUsername"
-)
-
 // StoreExecutorMock is a mock of StoreExecutor for testing purposes
 type StoreExecutorMock struct {
 }
