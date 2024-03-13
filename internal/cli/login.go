@@ -134,7 +134,7 @@ func (m LoginModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.showErr = true
 				}
 
-				if key == tea.KeyUp || key == tea.KeyShiftTab {
+				if key == tea.KeyUp {
 					m.focusIndex--
 				} else {
 					m.focusIndex++

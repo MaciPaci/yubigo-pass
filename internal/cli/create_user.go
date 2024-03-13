@@ -147,7 +147,7 @@ func (m CreateUserModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 
 				// Cycle indexes
-				if key == tea.KeyUp || key == tea.KeyShiftTab {
+				if key == tea.KeyUp {
 					m.focusIndex--
 				} else {
 					m.focusIndex++
