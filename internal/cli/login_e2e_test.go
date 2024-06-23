@@ -19,12 +19,6 @@ import (
 )
 
 func TestShouldQuitLoginAction(t *testing.T) {
-	tm := teatest.NewTestModel(
-		t,
-		NewLoginModel(test.NewStoreExecutorMock()),
-		teatest.WithInitialTermSize(300, 100),
-	)
-
 	testCases := []struct {
 		name string
 		key  tea.KeyType
@@ -42,6 +36,11 @@ func TestShouldQuitLoginAction(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(
 			testCase.name, func(t *testing.T) {
+				tm := teatest.NewTestModel(
+					t,
+					NewLoginModel(test.NewStoreExecutorMock()),
+					teatest.WithInitialTermSize(300, 100),
+				)
 				test.PressKey(tm, testCase.key)
 				fm := tm.FinalModel(t)
 				m, ok := fm.(LoginModel)
