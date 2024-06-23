@@ -100,7 +100,7 @@ func (m MainMenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
-		case "q", "ctrl+c":
+		case "q", "ctrl+c", "esc":
 			m.quitting = true
 			return m, tea.Quit
 
