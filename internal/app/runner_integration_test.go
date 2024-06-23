@@ -160,6 +160,119 @@ func TestRunnerLoginShouldEnterCreateUserActionAndAbortIt(t *testing.T) {
 	assert.Equal(t, mainMenuAction, runner.currentAction)
 }
 
+func TestRunnerMainMenuShouldChooseGetPassword(t *testing.T) {
+	// given
+	returnedLoginModel := cli.NewLoginModel(test.NewStoreExecutorMock())
+	returnedLoginModel.LoggedIn = true
+	returnedMainMenuModel := cli.NewMainMenuModel()
+	returnedMainMenuModel.Choice = cli.GetPasswordItem
+	serviceContainer := services.Container{
+		Store: test.NewStoreExecutorMock(),
+		Models: services.TeaModels{
+			Login:      test.NewTeaModelMock().WillReturnOnce(returnedLoginModel),
+			CreateUser: test.NewTeaModelMock(),
+			MainMenu:   test.NewTeaModelMock().WillReturnOnce(returnedMainMenuModel),
+		},
+	}
+	runner := NewRunner(serviceContainer)
+
+	// when
+	err := runner.Run()
+
+	// this is a workaround so that gotest to correctly catch PASS message
+	// it is awful and I hate it, but it works
+	fmt.Println('\n')
+
+	// then
+	assert.NoError(t, err)
+	assert.Equal(t, getPasswordAction, runner.currentAction)
+}
+
+func TestRunnerMainMenuShouldChooseViewPasswords(t *testing.T) {
+	// given
+	returnedLoginModel := cli.NewLoginModel(test.NewStoreExecutorMock())
+	returnedLoginModel.LoggedIn = true
+	returnedMainMenuModel := cli.NewMainMenuModel()
+	returnedMainMenuModel.Choice = cli.ViewPasswordItem
+	serviceContainer := services.Container{
+		Store: test.NewStoreExecutorMock(),
+		Models: services.TeaModels{
+			Login:      test.NewTeaModelMock().WillReturnOnce(returnedLoginModel),
+			CreateUser: test.NewTeaModelMock(),
+			MainMenu:   test.NewTeaModelMock().WillReturnOnce(returnedMainMenuModel),
+		},
+	}
+	runner := NewRunner(serviceContainer)
+
+	// when
+	err := runner.Run()
+
+	// this is a workaround so that gotest to correctly catch PASS message
+	// it is awful and I hate it, but it works
+	fmt.Println('\n')
+
+	// then
+	assert.NoError(t, err)
+	assert.Equal(t, viewPasswordsItem, runner.currentAction)
+}
+
+func TestRunnerMainMenuShouldChooseAddNewPassword(t *testing.T) {
+	// given
+	returnedLoginModel := cli.NewLoginModel(test.NewStoreExecutorMock())
+	returnedLoginModel.LoggedIn = true
+	returnedMainMenuModel := cli.NewMainMenuModel()
+	returnedMainMenuModel.Choice = cli.AddPasswordItem
+	serviceContainer := services.Container{
+		Store: test.NewStoreExecutorMock(),
+		Models: services.TeaModels{
+			Login:      test.NewTeaModelMock().WillReturnOnce(returnedLoginModel),
+			CreateUser: test.NewTeaModelMock(),
+			MainMenu:   test.NewTeaModelMock().WillReturnOnce(returnedMainMenuModel),
+		},
+	}
+	runner := NewRunner(serviceContainer)
+
+	// when
+	err := runner.Run()
+
+	// this is a workaround so that gotest to correctly catch PASS message
+	// it is awful and I hate it, but it works
+	fmt.Println('\n')
+
+	// then
+	assert.NoError(t, err)
+	assert.Equal(t, addPasswordItem, runner.currentAction)
+}
+
+func TestRunnerMainMenuShouldChooseLogout(t *testing.T) {
+	// given
+	returnedLoginModel := cli.NewLoginModel(test.NewStoreExecutorMock())
+	returnedLoginModel.LoggedIn = true
+	returnedLoginModelSecond := cli.NewLoginModel(test.NewStoreExecutorMock())
+	returnedMainMenuModel := cli.NewMainMenuModel()
+	returnedMainMenuModel.Choice = cli.LogoutItem
+	serviceContainer := services.Container{
+		Store: test.NewStoreExecutorMock(),
+		Models: services.TeaModels{
+			Login:      test.NewTeaModelMock().WillReturnOnce(returnedLoginModel).WillReturnOnce(returnedLoginModelSecond),
+			CreateUser: test.NewTeaModelMock(),
+			MainMenu:   test.NewTeaModelMock().WillReturnOnce(returnedMainMenuModel),
+		},
+	}
+	runner := NewRunner(serviceContainer)
+
+	// when
+	err := runner.Run()
+
+	// this is a workaround so that gotest to correctly catch PASS message
+	// it is awful and I hate it, but it works
+	fmt.Println('\n')
+
+	// then
+	assert.NoError(t, err)
+	assert.Equal(t, loginAction, runner.currentAction)
+}
+
 func TestCreateUserFlowShouldCreateNewUserInDB(t *testing.T) {
 	// setup
 	db, err := test.SetupTestDB()

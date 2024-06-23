@@ -78,13 +78,10 @@ func (r *Runner) Run() error {
 			switch m.Choice {
 			case cli.GetPasswordItem:
 				r.currentAction = getPasswordAction
-				continue
 			case cli.ViewPasswordItem:
 				r.currentAction = viewPasswordsItem
-				continue
 			case cli.AddPasswordItem:
 				r.currentAction = addPasswordItem
-				continue
 			case cli.LogoutItem:
 				r.currentAction = loginAction
 				continue
