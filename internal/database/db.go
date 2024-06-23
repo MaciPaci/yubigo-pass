@@ -44,7 +44,7 @@ func CreateDB(dbFilePath, migrationPath string) (*sqlx.DB, error) {
 		return nil, fmt.Errorf("error creating database driver: %w", err)
 	}
 
-	log.Info("Starting migration")
+	//log.Info("Starting migration")
 
 	m, err := migrate.NewWithDatabaseInstance(migrationPath, "sqlite3", driver)
 	if err != nil {
@@ -58,7 +58,7 @@ func CreateDB(dbFilePath, migrationPath string) (*sqlx.DB, error) {
 		return nil, fmt.Errorf("error during migration: %w", err)
 	}
 
-	log.Info("Migration successful!")
+	//log.Info("Migration successful!")
 	return db, nil
 }
 

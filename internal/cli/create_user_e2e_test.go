@@ -7,15 +7,18 @@ import (
 	"io"
 	"testing"
 	"time"
+	"yubigo-pass/internal/app/model"
 	"yubigo-pass/internal/database"
 	"yubigo-pass/test"
+
+	"github.com/google/uuid"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/exp/teatest"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestShouldQuitCreateUserProgram(t *testing.T) {
+func TestShouldQuitCreateUserAction(t *testing.T) {
 	tm := teatest.NewTestModel(
 		t,
 		NewCreateUserModel(test.NewStoreExecutorMock()),
@@ -39,13 +42,11 @@ func TestShouldQuitCreateUserProgram(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(
 			testCase.name, func(t *testing.T) {
-				tm.Send(tea.KeyMsg{
-					Type: testCase.key,
-				})
+				test.PressKey(tm, testCase.key)
 				fm := tm.FinalModel(t)
 				m, ok := fm.(CreateUserModel)
 				assert.Truef(t, ok, "final model has wrong type: %T", fm)
-				assert.Truef(t, m.cancelled, "final model is not cancelled")
+				assert.Truef(t, m.Cancelled, "final model is not Cancelled")
 				tm.WaitFinished(t, teatest.WithFinalTimeout(time.Millisecond*100))
 			},
 		)
@@ -54,9 +55,13 @@ func TestShouldQuitCreateUserProgram(t *testing.T) {
 
 func TestShouldCreateUser(t *testing.T) {
 	// given
+	db, err := test.SetupTestDB()
+	if err != nil {
+		t.Fatalf("Failed to set up test database: %v", err)
+	}
 	tm := teatest.NewTestModel(
 		t,
-		NewCreateUserModel(test.NewStoreExecutorMock()),
+		NewCreateUserModel(database.NewStore(db)),
 		teatest.WithInitialTermSize(300, 100),
 	)
 
@@ -65,39 +70,20 @@ func TestShouldCreateUser(t *testing.T) {
 	examplePassword := test.RandomString()
 
 	// when
-	tm.Send(tea.KeyMsg{
-		Type:  tea.KeyRunes,
-		Runes: []rune(exampleUsername),
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyDown,
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type:  tea.KeyRunes,
-		Runes: []rune(examplePassword),
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyTab,
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyEnter,
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyEnter,
-	})
+	test.TypeString(tm, exampleUsername)
+	test.PressKey(tm, tea.KeyDown)
+	test.TypeString(tm, examplePassword)
+	test.PressKey(tm, tea.KeyDown)
+	test.PressKey(tm, tea.KeyEnter)
 
 	// then
 	fm := tm.FinalModel(t)
 	m, ok := fm.(CreateUserModel)
 	assert.True(t, ok)
-	assert.True(t, m.finished)
-	assert.Equal(t, exampleUsername, m.inputs[0].Value())
-	assert.Equal(t, examplePassword, m.inputs[1].Value())
+	assert.True(t, m.UserCreated)
+	resultUsername, resultPassword := ExtractDataFromModel(m)
+	assert.Equal(t, exampleUsername, resultUsername)
+	assert.Equal(t, examplePassword, resultPassword)
 
 	out, err := io.ReadAll(tm.FinalOutput(t))
 	if err != nil {
@@ -118,26 +104,10 @@ func TestShouldNotCreateUserWithEmptyUsername(t *testing.T) {
 	examplePassword := test.RandomString()
 
 	// when
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyDown,
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type:  tea.KeyRunes,
-		Runes: []rune(examplePassword),
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyTab,
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyEnter,
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyEnter,
-	})
+	test.PressKey(tm, tea.KeyDown)
+	test.TypeString(tm, examplePassword)
+	test.PressKey(tm, tea.KeyDown)
+	test.PressKey(tm, tea.KeyEnter)
 
 	// then
 	teatest.WaitFor(
@@ -161,26 +131,10 @@ func TestShouldNotCreateUserWithEmptyPassword(t *testing.T) {
 	exampleUsername := test.RandomString()
 
 	// when
-	tm.Send(tea.KeyMsg{
-		Type:  tea.KeyRunes,
-		Runes: []rune(exampleUsername),
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyDown,
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyTab,
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyEnter,
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyEnter,
-	})
+	test.TypeString(tm, exampleUsername)
+	test.PressKey(tm, tea.KeyDown)
+	test.PressKey(tm, tea.KeyDown)
+	test.PressKey(tm, tea.KeyEnter)
 
 	// then
 	teatest.WaitFor(
@@ -203,17 +157,8 @@ func TestShouldNotCreateUserWithBothInputFieldsEmpty(t *testing.T) {
 	)
 
 	// when
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyUp,
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyEnter,
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyEnter,
-	})
+	test.PressKey(tm, tea.KeyUp)
+	test.PressKey(tm, tea.KeyEnter)
 
 	// then
 	teatest.WaitFor(
@@ -241,40 +186,18 @@ func TestShouldNotCreateUserIfUsernameAlreadyExists(t *testing.T) {
 		teatest.WithInitialTermSize(300, 100),
 	)
 
+	existingUsername := test.RandomString()
 	examplePassword := test.RandomString()
 
 	// and username already exists in database
-	_, err = db.Exec("INSERT INTO users (id, username, password, salt) VALUES (?, ?, ?, ?)", "1", test.ExistingUsername, test.RandomString(), test.RandomString())
-	if err != nil {
-		t.Fatalf("failed to insert record to db: %v", err)
-	}
+	test.InsertIntoUsers(t, db, model.NewUser(uuid.New().String(), existingUsername, test.RandomString(), test.RandomString()))
 
 	// when
-	tm.Send(tea.KeyMsg{
-		Type:  tea.KeyRunes,
-		Runes: []rune(test.ExistingUsername),
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyDown,
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type:  tea.KeyRunes,
-		Runes: []rune(examplePassword),
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyTab,
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyEnter,
-	})
-
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyEnter,
-	})
+	test.TypeString(tm, existingUsername)
+	test.PressKey(tm, tea.KeyDown)
+	test.TypeString(tm, examplePassword)
+	test.PressKey(tm, tea.KeyDown)
+	test.PressKey(tm, tea.KeyEnter)
 
 	// then
 	teatest.WaitFor(
@@ -286,4 +209,27 @@ func TestShouldNotCreateUserIfUsernameAlreadyExists(t *testing.T) {
 		teatest.WithCheckInterval(time.Millisecond*100),
 		teatest.WithDuration(time.Second*1),
 	)
+}
+
+func TestShouldAbortCreateUserActionAfterGoingBackAndForth(t *testing.T) {
+	// given
+	tm := teatest.NewTestModel(
+		t,
+		NewCreateUserModel(test.NewStoreExecutorMock()),
+		teatest.WithInitialTermSize(300, 100),
+	)
+
+	// when
+	test.PressKey(tm, tea.KeyTab)
+	test.PressKey(tm, tea.KeyTab)
+	test.PressKey(tm, tea.KeyTab)
+	test.PressKey(tm, tea.KeyEnter)
+
+	// then
+	fm := tm.FinalModel(t)
+	m, ok := fm.(CreateUserModel)
+	assert.True(t, ok)
+	assert.True(t, m.UserCreationAborted)
+
+	tm.WaitFinished(t, teatest.WithFinalTimeout(time.Second))
 }
