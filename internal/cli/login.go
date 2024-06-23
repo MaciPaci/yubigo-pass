@@ -71,7 +71,7 @@ func NewLoginModel(store database.StoreExecutor) LoginModel {
 	return m
 }
 
-// Init initializes for LoginModel
+// Init initializes LoginModel
 func (m LoginModel) Init() tea.Cmd {
 	m.inputs[0].Focus()
 	for i := range m.inputs {
@@ -189,6 +189,9 @@ func updateLoginModelInputs(m *LoginModel, msg tea.Msg) tea.Cmd {
 
 // View renders LoginModel
 func (m LoginModel) View() string {
+	if m.Cancelled {
+		return quitTextStyle.Render("Quitting.")
+	}
 	var b strings.Builder
 
 	b.WriteString("\n---------------LOGIN---------------\n\n")

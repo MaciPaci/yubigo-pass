@@ -18,6 +18,10 @@ type programAction int
 const (
 	loginAction programAction = iota
 	createUserAction
+	mainMenuAction
+	getPasswordAction
+	viewPasswordsItem
+	addPasswordItem
 )
 
 // Runner is a program flow execution controller
@@ -49,6 +53,10 @@ func (r *Runner) Run() error {
 				r.currentAction = createUserAction
 				continue
 			}
+			if m.LoggedIn {
+				r.currentAction = mainMenuAction
+				continue
+			}
 			return nil
 
 		case createUserAction:
@@ -61,8 +69,38 @@ func (r *Runner) Run() error {
 				continue
 			}
 			return nil
+
+		case mainMenuAction:
+			m, err := runMainMenuAction(r.serviceContainer)
+			if err != nil {
+				return fmt.Errorf("main menu action failed: %s", err)
+			}
+			switch m.Choice {
+			case cli.GetPasswordItem:
+				r.currentAction = getPasswordAction
+				continue
+			case cli.ViewPasswordItem:
+				r.currentAction = viewPasswordsItem
+				continue
+			case cli.AddPasswordItem:
+				r.currentAction = addPasswordItem
+				continue
+			case cli.LogoutItem:
+				r.currentAction = loginAction
+				continue
+			}
+			return nil
 		}
 	}
+}
+
+func runMainMenuAction(serviceContainer services.Container) (cli.MainMenuModel, error) {
+	m, err := tea.NewProgram(serviceContainer.Models.MainMenu).Run()
+	mainMenuModel := m.(cli.MainMenuModel)
+	if err != nil {
+		return mainMenuModel, fmt.Errorf("could not start main menu action: %w", err)
+	}
+	return mainMenuModel, nil
 }
 
 func runLoginAction(serviceContainer services.Container) (cli.LoginModel, error) {
@@ -70,9 +108,6 @@ func runLoginAction(serviceContainer services.Container) (cli.LoginModel, error)
 	loginModel := m.(cli.LoginModel)
 	if err != nil {
 		return loginModel, fmt.Errorf("could not start login action: %w", err)
-	}
-	if loginModel.Cancelled {
-		return loginModel, fmt.Errorf("login action cancelled")
 	}
 	return loginModel, err
 }
@@ -82,9 +117,6 @@ func runCreateUserAction(serviceContainer services.Container) (cli.CreateUserMod
 	createUserModel := m.(cli.CreateUserModel)
 	if err != nil {
 		return createUserModel, fmt.Errorf("could not start create user action: %w", err)
-	}
-	if createUserModel.Cancelled {
-		return createUserModel, fmt.Errorf("create user action cancelled")
 	}
 	if createUserModel.UserCreationAborted {
 		return createUserModel, nil
