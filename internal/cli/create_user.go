@@ -9,7 +9,6 @@ import (
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 )
 
 type sessionStateCreateUser uint
@@ -20,10 +19,6 @@ const (
 )
 
 var (
-	focusedStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
-	blurredStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
-	cursorStyle         = focusedStyle.Copy()
-	noStyle             = lipgloss.NewStyle()
 	focusedSubmitButton = focusedStyle.Copy().Render("[ Submit ]")
 	blurredSubmitButton = fmt.Sprintf("[ %s ]", blurredStyle.Render("Submit"))
 	focusedBackButton   = focusedStyle.Copy().Render("[ Back ]")
@@ -203,6 +198,9 @@ func updateCreateUserModelInputs(m *CreateUserModel, msg tea.Msg) tea.Cmd {
 
 // View renders CreateUserModel
 func (m CreateUserModel) View() string {
+	if m.Cancelled {
+		return quitTextStyle.Render("Quitting.")
+	}
 	var b strings.Builder
 
 	b.WriteString("\n----------CREATE NEW USER----------\n\n")
