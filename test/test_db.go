@@ -56,7 +56,7 @@ func TeardownTestDB(db *sqlx.DB) {
 func InsertIntoUsers(t *testing.T, db *sqlx.DB, input model.User) {
 	query := `INSERT INTO users (id, username, password, salt) VALUES ($1, $2, $3, $4)`
 
-	_, err := db.Exec(query, input.Uuid, input.Username, input.Password, input.Salt)
+	_, err := db.Exec(query, input.UserID, input.Username, input.Password, input.Salt)
 	if err != nil {
 		t.Fatalf("failed to create user: %s", err)
 	}

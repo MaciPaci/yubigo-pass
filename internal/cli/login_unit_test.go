@@ -38,7 +38,7 @@ func TestLoginShouldNotValidateIncorrectInputWithEmptyPassword(t *testing.T) {
 	err := validateLoginModelInputs(incorrectInput, nil)
 
 	// then
-	assert.Error(t, expectedError, err)
+	assert.EqualError(t, err, expectedError.Error())
 }
 
 func TestLoginShouldNotValidateIncorrectInputWithEmptyUsername(t *testing.T) {
@@ -54,7 +54,7 @@ func TestLoginShouldNotValidateIncorrectInputWithEmptyUsername(t *testing.T) {
 	err := validateLoginModelInputs(incorrectInput, nil)
 
 	// then
-	assert.Error(t, expectedError, err)
+	assert.EqualError(t, err, expectedError.Error())
 }
 
 func TestLoginShouldNotValidateIncorrectInputWithEmptyBothFields(t *testing.T) {
@@ -70,7 +70,7 @@ func TestLoginShouldNotValidateIncorrectInputWithEmptyBothFields(t *testing.T) {
 	err := validateLoginModelInputs(incorrectInput, nil)
 
 	// then
-	assert.Error(t, expectedError, err)
+	assert.EqualError(t, err, expectedError.Error())
 }
 
 func TestLoginShouldReturnErrorIfErrorWasPassed(t *testing.T) {
@@ -84,5 +84,5 @@ func TestLoginShouldReturnErrorIfErrorWasPassed(t *testing.T) {
 	err := validateLoginModelInputs(correctInput, passedError)
 
 	// then
-	assert.Error(t, passedError, err)
+	assert.EqualError(t, err, passedError.Error())
 }

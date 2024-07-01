@@ -38,7 +38,7 @@ func TestCreateUserShouldNotValidateIncorrectInputWithEmptyPassword(t *testing.T
 	err := validateCreateUserModelInputs(incorrectInput, nil)
 
 	// then
-	assert.Error(t, expectedError, err)
+	assert.EqualError(t, err, expectedError.Error())
 }
 
 func TestCreateUserShouldNotValidateIncorrectInputWithEmptyUsername(t *testing.T) {
@@ -54,7 +54,7 @@ func TestCreateUserShouldNotValidateIncorrectInputWithEmptyUsername(t *testing.T
 	err := validateCreateUserModelInputs(incorrectInput, nil)
 
 	// then
-	assert.Error(t, expectedError, err)
+	assert.EqualError(t, err, expectedError.Error())
 }
 
 func TestCreateUserShouldNotValidateIncorrectInputWithEmptyBothFields(t *testing.T) {
@@ -70,7 +70,7 @@ func TestCreateUserShouldNotValidateIncorrectInputWithEmptyBothFields(t *testing
 	err := validateCreateUserModelInputs(incorrectInput, nil)
 
 	// then
-	assert.Error(t, expectedError, err)
+	assert.EqualError(t, err, expectedError.Error())
 }
 
 func TestCreateUserShouldReturnErrorIfErrorWasPassed(t *testing.T) {
@@ -84,5 +84,5 @@ func TestCreateUserShouldReturnErrorIfErrorWasPassed(t *testing.T) {
 	err := validateCreateUserModelInputs(correctInput, passedError)
 
 	// then
-	assert.Error(t, passedError, err)
+	assert.EqualError(t, err, passedError.Error())
 }

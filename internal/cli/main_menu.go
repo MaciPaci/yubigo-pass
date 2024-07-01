@@ -17,6 +17,7 @@ const (
 	AddPasswordItem  = "Add a new password" // #nosec G101
 	LogoutItem       = "Logout"
 	QuitItem         = "Quit"
+	//GeneratePasswordItem = "Generate password"
 )
 
 type item string
@@ -74,10 +75,8 @@ func NewMainMenuModel() MainMenuModel {
 	const defaultWidth = 20
 
 	l := list.New(items, itemDelegate{}, defaultWidth, listHeight)
-	l.Title = "What do you want to do?"
 	l.SetShowStatusBar(false)
 	l.SetFilteringEnabled(false)
-	l.Styles.Title = titleStyle
 	l.Styles.PaginationStyle = paginationStyle
 	l.Styles.HelpStyle = helpStyle
 
@@ -128,8 +127,6 @@ func (m MainMenuModel) View() string {
 		return quitTextStyle.Render(GetPasswordItem)
 	case ViewPasswordItem:
 		return quitTextStyle.Render(ViewPasswordItem)
-	case AddPasswordItem:
-		return quitTextStyle.Render(AddPasswordItem)
 	case LogoutItem:
 		return quitTextStyle.Render(LogoutItem)
 	}

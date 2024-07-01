@@ -5,6 +5,7 @@ import (
 	"yubigo-pass/internal/app/crypto"
 	"yubigo-pass/internal/app/model"
 	"yubigo-pass/internal/app/services"
+	"yubigo-pass/internal/app/utils"
 	"yubigo-pass/internal/cli"
 	"yubigo-pass/internal/database"
 
@@ -20,8 +21,8 @@ const (
 	createUserAction
 	mainMenuAction
 	getPasswordAction
-	viewPasswordsItem
-	addPasswordItem
+	viewPasswordsAction
+	addPasswordAction
 )
 
 // Runner is a program flow execution controller
@@ -41,6 +42,7 @@ func NewRunner(serviceContainer services.Container) *Runner {
 // Run runs the application
 func (r *Runner) Run() error {
 	defer database.CloseDB()
+	session := utils.NewEmptySession()
 
 	for {
 		switch r.currentAction {
@@ -54,6 +56,7 @@ func (r *Runner) Run() error {
 				continue
 			}
 			if m.LoggedIn {
+				session = m.Session
 				r.currentAction = mainMenuAction
 				continue
 			}
@@ -78,17 +81,52 @@ func (r *Runner) Run() error {
 			switch m.Choice {
 			case cli.GetPasswordItem:
 				r.currentAction = getPasswordAction
+				continue
 			case cli.ViewPasswordItem:
-				r.currentAction = viewPasswordsItem
+				r.currentAction = viewPasswordsAction
+				continue
 			case cli.AddPasswordItem:
-				r.currentAction = addPasswordItem
+				r.currentAction = addPasswordAction
+				continue
 			case cli.LogoutItem:
+				session.Clear()
 				r.currentAction = loginAction
 				continue
 			}
 			return nil
+
+		case addPasswordAction:
+			m, err := runAddPasswordAction(session, r.serviceContainer)
+			if err != nil {
+				return fmt.Errorf("add password action failed: %s", err)
+			}
+			if m.Back || m.PasswordAdded {
+				r.currentAction = mainMenuAction
+				continue
+			}
+			return nil
+
+		default:
+			return nil
 		}
 	}
+}
+
+func runAddPasswordAction(session utils.Session, serviceContainer services.Container) (cli.AddPasswordModel, error) {
+	m, err := tea.NewProgram(serviceContainer.Models.AddPasswordModel).Run()
+	addPasswordModel := m.(cli.AddPasswordModel)
+	if err != nil {
+		return addPasswordModel, fmt.Errorf("could not start get password action: %w", err)
+	}
+
+	if addPasswordModel.PasswordAdded {
+		err := addNewPassword(session, serviceContainer, addPasswordModel)
+		if err != nil {
+			return addPasswordModel, fmt.Errorf("could not add new password: %w", err)
+		}
+	}
+
+	return addPasswordModel, nil
 }
 
 func runMainMenuAction(serviceContainer services.Container) (cli.MainMenuModel, error) {
@@ -125,6 +163,34 @@ func runCreateUserAction(serviceContainer services.Container) (cli.CreateUserMod
 	}
 
 	return createUserModel, nil
+}
+
+func addNewPassword(session utils.Session, serviceContainer services.Container, m tea.Model) error {
+	encryptionKey := crypto.DeriveAESKey(session.GetPassphrase(), session.GetSalt())
+
+	addedPassword := cli.ExtractPasswordDataFromModel(m)
+	encryptedPassword, nonce, err := crypto.EncryptAES(encryptionKey, []byte(addedPassword.Password))
+	if err != nil {
+		return err
+	}
+
+	ciphertext := append(nonce, encryptedPassword...)
+
+	addPasswordInput := model.NewPassword(
+		session.GetUserID(),
+		addedPassword.Title,
+		addedPassword.Username,
+		string(ciphertext),
+		addedPassword.Url,
+		nonce,
+	)
+
+	err = serviceContainer.Store.AddPassword(addPasswordInput)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func createNewUser(serviceContainer services.Container, m tea.Model) error {

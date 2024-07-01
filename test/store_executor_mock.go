@@ -20,3 +20,13 @@ func (s StoreExecutorMock) CreateUser(input model.User) error {
 func (s StoreExecutorMock) GetUser(username string) (model.User, error) {
 	return model.User{}, nil
 }
+
+func (s StoreExecutorMock) AddPassword(password model.Password) error {
+	return nil
+}
+func (s StoreExecutorMock) GetPassword(userID, title, username string) (model.Password, error) {
+	return model.Password{}, nil
+}
+func (s StoreExecutorMock) GetAllUserPasswords(userID string) ([]model.Password, error) {
+	return []model.Password{}, nil
+}
