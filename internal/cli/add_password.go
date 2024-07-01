@@ -7,43 +7,46 @@ import (
 	"yubigo-pass/internal/app/model"
 	"yubigo-pass/internal/database"
 
-	"github.com/mritd/bubbles/common"
-
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/mritd/bubbles/common"
 )
 
-type sessionStateCreateUser uint
+type sessionStateAddPassword uint
 
 const (
-	createUserState sessionStateCreateUser = iota
-	backButtonFocused
+	addPasswordFocused sessionStateAddPassword = iota
+	addPasswordBackButtonFocused
 )
 
-// CreateUserModel is a model for user creation
-type CreateUserModel struct {
-	state               sessionStateCreateUser
-	focusIndex          int
-	inputs              []textinput.Model
-	showErr             bool
-	err                 error
-	Cancelled           bool
-	UserCreated         bool
-	UserCreationAborted bool
+// AddPasswordModel is a model for adding a new password
+type AddPasswordModel struct {
+	state         sessionStateAddPassword
+	focusIndex    int
+	inputs        []textinput.Model
+	showErr       bool
+	err           error
+	Cancelled     bool
+	Back          bool
+	PasswordAdded bool
 
 	store database.StoreExecutor
 }
 
-// ExtractDataFromModel maps data from the model into strings
-func ExtractDataFromModel(m tea.Model) (string, string) {
-	return m.(CreateUserModel).inputs[0].Value(), m.(CreateUserModel).inputs[1].Value()
+func ExtractPasswordDataFromModel(m tea.Model) model.Password {
+	return model.Password{
+		Title:    m.(AddPasswordModel).inputs[0].Value(),
+		Username: m.(AddPasswordModel).inputs[1].Value(),
+		Password: m.(AddPasswordModel).inputs[2].Value(),
+		Url:      m.(AddPasswordModel).inputs[3].Value(),
+	}
 }
 
-// NewCreateUserModel returns model for user creation
-func NewCreateUserModel(store database.StoreExecutor) CreateUserModel {
-	m := CreateUserModel{
-		state:  createUserState,
-		inputs: make([]textinput.Model, 2),
+// NewAddPasswordModel returns model for adding a new password
+func NewAddPasswordModel(store database.StoreExecutor) AddPasswordModel {
+	m := AddPasswordModel{
+		state:  addPasswordFocused,
+		inputs: make([]textinput.Model, 4),
 		store:  store,
 	}
 
@@ -55,15 +58,25 @@ func NewCreateUserModel(store database.StoreExecutor) CreateUserModel {
 
 		switch i {
 		case 0:
-			t.Placeholder = "Username"
+			t.Placeholder = "Title"
 			t.Focus()
 			t.PromptStyle = focusedStyle
 			t.TextStyle = focusedStyle
 			t.CharLimit = 64
 		case 1:
+			t.Placeholder = "Username"
+			t.PromptStyle = blurredStyle
+			t.TextStyle = blurredStyle
+			t.CharLimit = 64
+		case 2:
 			t.Placeholder = "Password"
 			t.EchoMode = textinput.EchoPassword
 			t.EchoCharacter = '•'
+		case 3:
+			t.Placeholder = "URL (optional)"
+			t.PromptStyle = blurredStyle
+			t.TextStyle = blurredStyle
+			t.CharLimit = 64
 		}
 		m.inputs[i] = t
 	}
@@ -71,8 +84,8 @@ func NewCreateUserModel(store database.StoreExecutor) CreateUserModel {
 	return m
 }
 
-// Init initializes for CreateUserModel
-func (m CreateUserModel) Init() tea.Cmd {
+// Init initializes AddPasswordModel
+func (m AddPasswordModel) Init() tea.Cmd {
 	m.inputs[0].Focus()
 	for i := range m.inputs {
 		m.inputs[i].SetValue("")
@@ -80,8 +93,8 @@ func (m CreateUserModel) Init() tea.Cmd {
 	return textinput.Blink
 }
 
-// Update updates CreateUserModel
-func (m CreateUserModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+// Update updates AddPasswordModel
+func (m AddPasswordModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.Type {
@@ -90,8 +103,8 @@ func (m CreateUserModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case tea.KeyTab, tea.KeyShiftTab:
-			if m.state == createUserState {
-				m.state = backButtonFocused
+			if m.state == addPasswordFocused {
+				m.state = addPasswordBackButtonFocused
 				for i := 0; i <= len(m.inputs)-1; i++ {
 					m.inputs[i].Blur()
 					m.inputs[i].PromptStyle = noStyle
@@ -99,7 +112,7 @@ func (m CreateUserModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			} else {
 				var cmd tea.Cmd
-				m.state = createUserState
+				m.state = addPasswordFocused
 				if m.focusIndex != len(m.inputs) {
 					m.inputs[m.focusIndex].PromptStyle = focusedStyle
 					m.inputs[m.focusIndex].TextStyle = focusedStyle
@@ -110,21 +123,20 @@ func (m CreateUserModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case tea.KeyEnter, tea.KeyUp, tea.KeyDown, tea.KeyPgDown:
 			key := msg.Type
-
-			if m.state == backButtonFocused {
+			if m.state == addPasswordBackButtonFocused {
 				if key == tea.KeyEnter {
-					m.UserCreationAborted = true
+					m.Back = true
 					return m, tea.Quit
 				}
 			} else {
 				if key == tea.KeyEnter && m.focusIndex == len(m.inputs) {
 					if m.err == nil {
-						_, err := m.store.GetUser(m.inputs[0].Value())
-						if err != nil && errors.As(err, &model.UserNotFoundError{}) {
-							m.UserCreated = true
+						_, err := m.store.GetPassword(m.inputs[0].Value(), m.inputs[1].Value(), m.inputs[2].Value())
+						if err != nil && errors.As(err, &model.PasswordNotFoundError{}) {
+							m.PasswordAdded = true
 							return m, tea.Quit
 						}
-						m.err = fmt.Errorf("username already exists")
+						m.err = fmt.Errorf("this password already exists, change inputs or update existing password")
 					}
 					m.showErr = true
 				}
@@ -143,7 +155,7 @@ func (m CreateUserModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 
 				cmds := make([]tea.Cmd, len(m.inputs))
-				if m.state == createUserState {
+				if m.state == addPasswordFocused {
 					for i := 0; i <= len(m.inputs)-1; i++ {
 						if i == m.focusIndex {
 							// Set focused state
@@ -166,13 +178,13 @@ func (m CreateUserModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.err = nil
 		}
 	}
-	cmd := updateCreateUserModelInputs(&m, msg)
-	m.err = validateCreateUserModelInputs(m.inputs, m.err)
+	cmd := updateAddPasswordModelInputs(&m, msg)
+	m.err = validateAddPasswordModelInputs(m.inputs, m.err)
 
 	return m, cmd
 }
 
-func updateCreateUserModelInputs(m *CreateUserModel, msg tea.Msg) tea.Cmd {
+func updateAddPasswordModelInputs(m *AddPasswordModel, msg tea.Msg) tea.Cmd {
 	cmds := make([]tea.Cmd, len(m.inputs))
 
 	// Only text inputs with Focus() set will respond, so it's safe to simply
@@ -184,14 +196,14 @@ func updateCreateUserModelInputs(m *CreateUserModel, msg tea.Msg) tea.Cmd {
 	return tea.Batch(cmds...)
 }
 
-// View renders CreateUserModel
-func (m CreateUserModel) View() string {
+// View renders AddPasswordModel
+func (m AddPasswordModel) View() string {
 	if m.Cancelled {
 		return quitTextStyle.Render("Quitting.")
 	}
 	var b strings.Builder
 
-	b.WriteString(titleStyle.Render("CREATE NEW USER") + "\n\n")
+	b.WriteString(titleStyle.Render("ADD A NEW PASSWORD") + "\n\n")
 
 	var screenMsg string
 	if m.err != nil {
@@ -200,8 +212,8 @@ func (m CreateUserModel) View() string {
 		}
 	}
 
-	if m.UserCreated {
-		screenMsg = common.FontColor(fmt.Sprintf("%s User created successfully\n", validateOkPrefix), colorValidateOk)
+	if m.PasswordAdded {
+		screenMsg = common.FontColor(fmt.Sprintf("\n%s Password added.\n", validateOkPrefix), colorValidateOk)
 	}
 
 	for i := range m.inputs {
@@ -211,38 +223,33 @@ func (m CreateUserModel) View() string {
 		}
 	}
 
-	createUserButton := &blurredSubmitButton
+	addButton := &blurredAddButton
 	backButton := &blurredBackButton
-	if m.focusIndex == len(m.inputs) && m.state == createUserState {
-		createUserButton = &focusedSubmitButton
+	if m.focusIndex == len(m.inputs) && m.state == addPasswordFocused {
+		addButton = &focusedAddButton
 		backButton = &blurredBackButton
 	}
-	if m.state == backButtonFocused {
-		createUserButton = &blurredSubmitButton
+	if m.state == addPasswordBackButtonFocused {
+		addButton = &blurredAddButton
 		backButton = &focusedBackButton
 	}
 
-	fmt.Fprintf(&b, "\n\n%s\t%s\n%s\n", *createUserButton, *backButton, screenMsg)
+	fmt.Fprintf(&b, "\n\n%s\t\t%s\n%s\n", *addButton, *backButton, screenMsg)
 
 	return b.String()
 }
 
-func validateCreateUserModelInputs(input []textinput.Model, err error) error {
+func validateAddPasswordModelInputs(input []textinput.Model, err error) error {
 	if err != nil {
 		return err
 	}
 
-	usernameIsEmpty := func() bool { return strings.TrimSpace(input[0].Value()) == "" }
-	passwordIsEmpty := func() bool { return strings.TrimSpace(input[1].Value()) == "" }
+	titleIsEmpty := func() bool { return strings.TrimSpace(input[0].Value()) == "" }
+	usernameIsEmpty := func() bool { return strings.TrimSpace(input[1].Value()) == "" }
+	passwordIsEmpty := func() bool { return strings.TrimSpace(input[2].Value()) == "" }
 
-	if usernameIsEmpty() && passwordIsEmpty() {
-		return fmt.Errorf("username and password cannot be empty")
-	}
-	if usernameIsEmpty() {
-		return fmt.Errorf("username cannot be empty")
-	}
-	if passwordIsEmpty() {
-		return fmt.Errorf("password cannot be empty")
+	if titleIsEmpty() || usernameIsEmpty() || passwordIsEmpty() {
+		return fmt.Errorf("only optional fields can be empty")
 	}
 	return nil
 }

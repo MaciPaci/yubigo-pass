@@ -22,7 +22,7 @@ func TestShouldCreateUserInDB(t *testing.T) {
 
 	// given
 	input := model.User{
-		Uuid:     test.RandomString(),
+		UserID:   test.RandomString(),
 		Username: test.RandomString(),
 		Password: test.RandomString(),
 		Salt:     test.RandomString(),
@@ -48,7 +48,7 @@ func TestShouldNotCreateUserIfOneWithTheSameUsernameIsAlreadyInDB(t *testing.T) 
 
 	// given
 	input := model.User{
-		Uuid:     test.RandomString(),
+		UserID:   test.RandomString(),
 		Username: test.RandomString(),
 		Password: test.RandomString(),
 		Salt:     test.RandomString(),
@@ -76,7 +76,7 @@ func TestShouldGetUserFromDB(t *testing.T) {
 
 	// given
 	input := model.User{
-		Uuid:     test.RandomString(),
+		UserID:   test.RandomString(),
 		Username: test.RandomString(),
 		Password: test.RandomString(),
 		Salt:     test.RandomString(),

@@ -74,7 +74,7 @@ func TestLoginShouldSucceed(t *testing.T) {
 	}
 
 	existingUser := model.User{
-		Uuid:     uuid.New().String(),
+		UserID:   uuid.New().String(),
 		Username: existingUsername,
 		Password: crypto.HashPasswordWithSalt(existingPassword, existingSalt),
 		Salt:     existingSalt,
@@ -129,7 +129,7 @@ func TestLoginShouldNotSucceedWithIncorrectCredentials(t *testing.T) {
 	}
 
 	existingUser := model.User{
-		Uuid:     uuid.New().String(),
+		UserID:   uuid.New().String(),
 		Username: existingUsername,
 		Password: crypto.HashPasswordWithSalt(existingPassword, existingSalt),
 		Salt:     existingSalt,
@@ -180,7 +180,7 @@ func TestLoginShouldNotSucceedWithIncorrectPassword(t *testing.T) {
 	}
 
 	existingUser := model.User{
-		Uuid:     uuid.New().String(),
+		UserID:   uuid.New().String(),
 		Username: existingUsername,
 		Password: crypto.HashPasswordWithSalt(existingPassword, existingSalt),
 		Salt:     existingSalt,
@@ -335,7 +335,7 @@ func TestLoginShouldSucceedAfterEnteringCreateUserFlowAndBack(t *testing.T) {
 	}
 
 	existingUser := model.User{
-		Uuid:     uuid.New().String(),
+		UserID:   uuid.New().String(),
 		Username: existingUsername,
 		Password: crypto.HashPasswordWithSalt(existingPassword, existingSalt),
 		Salt:     existingSalt,

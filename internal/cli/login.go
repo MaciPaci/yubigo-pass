@@ -1,9 +1,12 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"yubigo-pass/internal/app/crypto"
+	"yubigo-pass/internal/app/model"
+	"yubigo-pass/internal/app/utils"
 	"yubigo-pass/internal/database"
 
 	"github.com/charmbracelet/bubbles/textinput"
@@ -35,11 +38,12 @@ type LoginModel struct {
 	LoggedIn         bool
 	Cancelled        bool
 	CreateUserPicked bool
+	Session          utils.Session
 
 	store database.StoreExecutor
 }
 
-// NewLoginModel returns model for user creation
+// NewLoginModel returns model for user login
 func NewLoginModel(store database.StoreExecutor) LoginModel {
 	m := LoginModel{
 		state:  loginState,
@@ -118,13 +122,18 @@ func (m LoginModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else {
 				if key == tea.KeyEnter && m.focusIndex == len(m.inputs) {
 					if m.err == nil {
-						user, _ := m.store.GetUser(m.inputs[0].Value())
-						if user.Username == "" {
-							m.err = fmt.Errorf("incorrect credentials")
+						user, err := m.store.GetUser(m.inputs[0].Value())
+						if err != nil {
+							if errors.As(err, &model.UserNotFoundError{}) {
+								m.err = fmt.Errorf("incorrect credentials")
+							} else {
+								m.err = fmt.Errorf("login failed, try again")
+							}
 						} else {
 							hashedPassword := crypto.HashPasswordWithSalt(m.inputs[1].Value(), user.Salt)
 							if hashedPassword == user.Password {
 								m.LoggedIn = true
+								m.Session = utils.NewSession(user.UserID, user.Password, user.Salt)
 								return m, tea.Quit
 							} else {
 								m.err = fmt.Errorf("incorrect credentials")
@@ -194,7 +203,7 @@ func (m LoginModel) View() string {
 	}
 	var b strings.Builder
 
-	b.WriteString("\n---------------LOGIN---------------\n\n")
+	b.WriteString(titleStyle.Render("LOGIN") + "\n\n")
 
 	var screenMsg string
 	if m.err != nil {
@@ -204,7 +213,7 @@ func (m LoginModel) View() string {
 	}
 
 	if m.LoggedIn {
-		screenMsg = common.FontColor(fmt.Sprintf("%s Logged in\n", validateOkPrefix), colorValidateOk)
+		screenMsg = common.FontColor(fmt.Sprintf("\n%s Logged in\n", validateOkPrefix), colorValidateOk)
 	}
 
 	for i := range m.inputs {
