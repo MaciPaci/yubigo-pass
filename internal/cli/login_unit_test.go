@@ -32,7 +32,7 @@ func TestLoginShouldNotValidateIncorrectInputWithEmptyPassword(t *testing.T) {
 	incorrectInput[1].SetValue("")
 
 	// expected
-	expectedError := errors.New("password cannot empty")
+	expectedError := errors.New("password cannot be empty")
 
 	// when
 	err := validateLoginModelInputs(incorrectInput, nil)
@@ -48,7 +48,7 @@ func TestLoginShouldNotValidateIncorrectInputWithEmptyUsername(t *testing.T) {
 	incorrectInput[1].SetValue(test.RandomString())
 
 	// expected
-	expectedError := errors.New("username cannot empty")
+	expectedError := errors.New("username cannot be empty")
 
 	// when
 	err := validateLoginModelInputs(incorrectInput, nil)
@@ -64,7 +64,7 @@ func TestLoginShouldNotValidateIncorrectInputWithEmptyBothFields(t *testing.T) {
 	incorrectInput[1].SetValue("")
 
 	// expected
-	expectedError := errors.New("username and password cannot empty")
+	expectedError := errors.New("username and password cannot be empty")
 
 	// when
 	err := validateLoginModelInputs(incorrectInput, nil)
