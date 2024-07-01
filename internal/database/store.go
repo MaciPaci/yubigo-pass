@@ -64,6 +64,9 @@ func (s Store) GetUser(username string) (model.User, error) {
 
 func (s Store) AddPassword(input model.Password) error {
 	tx, err := s.db.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
 	query := `INSERT INTO passwords (user_id, title, username, password, url, nonce) VALUES ($1, $2, $3, $4, $5, $6)`
 
 	_, err = tx.Exec(query, input.UserID, input.Title, input.Username, input.Password, input.Url, input.Nonce)
