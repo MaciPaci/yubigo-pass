@@ -224,3 +224,42 @@ func TestShouldNotGetPasswordFromDBIfNoMatchingPasswordFound(t *testing.T) {
 	assert.EqualError(t, err, expectedError.Error())
 	assert.Empty(t, password)
 }
+
+func TestShouldGetAllPasswordsForUserFromDB(t *testing.T) {
+	// setup
+	db, err := test.SetupTestDB()
+	if err != nil {
+		t.Fatalf("Failed to set up test database: %v", err)
+	}
+	defer test.TeardownTestDB(db)
+	store := NewStore(db)
+
+	// given
+	userID := test.RandomString()
+	input1 := model.Password{
+		UserID:   userID,
+		Title:    test.RandomString(),
+		Username: test.RandomString(),
+		Password: test.RandomString(),
+		Url:      test.RandomString(),
+		Nonce:    []byte(test.RandomString()),
+	}
+	test.InsertIntoPasswords(t, db, input1)
+
+	input2 := model.Password{
+		UserID:   userID,
+		Title:    test.RandomString(),
+		Username: test.RandomString(),
+		Password: test.RandomString(),
+		Url:      test.RandomString(),
+		Nonce:    []byte(test.RandomString()),
+	}
+	test.InsertIntoPasswords(t, db, input2)
+
+	// when
+	passwords, err := store.GetAllUserPasswords(userID)
+
+	// then
+	assert.NoError(t, err)
+	assert.EqualValues(t, []model.Password{input1, input2}, passwords)
+}
