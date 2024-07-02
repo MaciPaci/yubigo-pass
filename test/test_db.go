@@ -52,11 +52,21 @@ func TeardownTestDB(db *sqlx.DB) {
 	_ = db.Close()
 }
 
-// InsertIntoUsers inserts record into users database for testing purposes
+// InsertIntoUsers inserts record into users table for testing purposes
 func InsertIntoUsers(t *testing.T, db *sqlx.DB, input model.User) {
 	query := `INSERT INTO users (id, username, password, salt) VALUES ($1, $2, $3, $4)`
 
 	_, err := db.Exec(query, input.UserID, input.Username, input.Password, input.Salt)
+	if err != nil {
+		t.Fatalf("failed to create user: %s", err)
+	}
+}
+
+// InsertIntoPasswords inserts record into passwords table for testing purposes
+func InsertIntoPasswords(t *testing.T, db *sqlx.DB, input model.Password) {
+	query := `INSERT INTO passwords (user_id, title, username, password, url, nonce) VALUES ($1, $2, $3, $4, $5, $6)`
+
+	_, err := db.Exec(query, input.UserID, input.Title, input.Username, input.Password, input.Url, input.Nonce)
 	if err != nil {
 		t.Fatalf("failed to create user: %s", err)
 	}
@@ -73,4 +83,17 @@ func GetUser(t *testing.T, db *sqlx.DB, username string) model.User {
 	}
 
 	return user
+}
+
+// GetPassword fetches password by userID, title and username for testing purposes
+func GetPassword(t *testing.T, db *sqlx.DB, userID, title, username string) model.Password {
+	query := `SELECT * FROM passwords where user_id = $1 and title = $2 and username = $3`
+
+	var password model.Password
+	err := db.QueryRowx(query, userID, title, username).StructScan(&password)
+	if err != nil {
+		t.Fatalf("failed to get password: %s", err)
+	}
+
+	return password
 }
