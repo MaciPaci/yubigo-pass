@@ -62,6 +62,7 @@ func (s Store) GetUser(username string) (model.User, error) {
 	return user, nil
 }
 
+// AddPassword adds a new password in DB
 func (s Store) AddPassword(input model.Password) error {
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -83,6 +84,7 @@ func (s Store) AddPassword(input model.Password) error {
 	return nil
 }
 
+// GetPassword fetches a password by userID, title and username from DB
 func (s Store) GetPassword(userID, title, username string) (model.Password, error) {
 	query := `SELECT * FROM passwords WHERE user_id = $1 AND title = $2 AND username = $3`
 
@@ -97,6 +99,7 @@ func (s Store) GetPassword(userID, title, username string) (model.Password, erro
 	return password, nil
 }
 
+// GetAllUserPasswords fetches all passwords for a user
 func (s Store) GetAllUserPasswords(username string) ([]model.Password, error) {
 	query := `SELECT * FROM passwords WHERE user_id = $1`
 

@@ -5,10 +5,12 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"fmt"
-	"golang.org/x/crypto/argon2"
 	"io"
+
+	"golang.org/x/crypto/argon2"
 )
 
+// GenerateAESKey generates a new AES-256 key
 func GenerateAESKey() ([]byte, error) {
 	key := make([]byte, 32) // 32 bytes for AES-256
 	if _, err := io.ReadFull(rand.Reader, key); err != nil {
@@ -17,6 +19,7 @@ func GenerateAESKey() ([]byte, error) {
 	return key, nil
 }
 
+// DeriveAESKey derives an AES-256 key from a passphrase and a salt
 func DeriveAESKey(passphrase, salt string) []byte {
 	iterations := 3     // Number of passes
 	memory := 32 * 1024 // Memory usage in KB (e.g., 32 MB)
@@ -26,6 +29,7 @@ func DeriveAESKey(passphrase, salt string) []byte {
 	return argon2.IDKey([]byte(passphrase), []byte(salt), uint32(iterations), uint32(memory), uint8(parallelism), uint32(keyLength))
 }
 
+// EncryptAES encrypts plaintext with AES-256-GCM.
 func EncryptAES(key []byte, plaintext []byte) ([]byte, []byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {

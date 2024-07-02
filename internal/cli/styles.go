@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/lipgloss"
 )

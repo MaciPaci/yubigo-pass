@@ -11,13 +11,14 @@ import (
 
 const listHeight = 14
 
+// enums for main menu
 const (
 	GetPasswordItem  = "Get password"
 	ViewPasswordItem = "View your passwords"
 	AddPasswordItem  = "Add a new password" // #nosec G101
 	LogoutItem       = "Logout"
 	QuitItem         = "Quit"
-	//GeneratePasswordItem = "Generate password"
+	//TODO GeneratePasswordItem = "Generate password"
 )
 
 type item string

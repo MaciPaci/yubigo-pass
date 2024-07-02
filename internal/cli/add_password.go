@@ -33,6 +33,7 @@ type AddPasswordModel struct {
 	store database.StoreExecutor
 }
 
+// ExtractPasswordDataFromModel maps data from the model into Password struct
 func ExtractPasswordDataFromModel(m tea.Model) model.Password {
 	return model.Password{
 		Title:    m.(AddPasswordModel).inputs[0].Value(),
