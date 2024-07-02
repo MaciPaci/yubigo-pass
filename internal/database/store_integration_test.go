@@ -4,6 +4,7 @@ package database
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 	"yubigo-pass/internal/app/model"
 	"yubigo-pass/test"
@@ -261,5 +262,5 @@ func TestShouldGetAllPasswordsForUserFromDB(t *testing.T) {
 
 	// then
 	assert.NoError(t, err)
-	assert.EqualValues(t, []model.Password{input1, input2}, passwords)
+	reflect.DeepEqual([]model.Password{input1, input2}, passwords)
 }
