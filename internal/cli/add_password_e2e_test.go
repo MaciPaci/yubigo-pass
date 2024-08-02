@@ -201,6 +201,30 @@ func TestShouldNotAddPasswordWithEmptyPassword(t *testing.T) {
 	)
 }
 
+func TestShouldNotAddPasswordWithEmptyFields(t *testing.T) {
+	// given
+	tm := teatest.NewTestModel(
+		t,
+		NewAddPasswordModel(test.NewStoreExecutorMock(), utils.NewEmptySession()),
+		teatest.WithInitialTermSize(300, 100),
+	)
+
+	// when
+	test.PressKey(tm, tea.KeyUp)
+	test.PressKey(tm, tea.KeyEnter)
+
+	// then
+	teatest.WaitFor(
+		t,
+		tm.Output(),
+		func(bts []byte) bool {
+			return bytes.Contains(bts, []byte("ERROR: only optional fields can be empty"))
+		},
+		teatest.WithCheckInterval(time.Millisecond*100),
+		teatest.WithDuration(time.Second*1),
+	)
+}
+
 func TestShouldAddPasswordWithEmptyUrl(t *testing.T) {
 	// given
 	db, err := test.SetupTestDB()
@@ -298,4 +322,47 @@ func TestShouldNotAddPasswordIfItAlreadyExists(t *testing.T) {
 		teatest.WithCheckInterval(time.Millisecond*100),
 		teatest.WithDuration(time.Second*1),
 	)
+}
+
+func TestShouldAbortAddPasswordActionAfterGoingBackAndForth(t *testing.T) {
+	// given
+	tm := teatest.NewTestModel(
+		t,
+		NewAddPasswordModel(test.NewStoreExecutorMock(), utils.NewEmptySession()),
+		teatest.WithInitialTermSize(300, 100),
+	)
+
+	// when
+	test.PressKey(tm, tea.KeyTab)
+	test.PressKey(tm, tea.KeyTab)
+	test.PressKey(tm, tea.KeyEsc)
+
+	// then
+	fm := tm.FinalModel(t)
+	m, ok := fm.(AddPasswordModel)
+	assert.True(t, ok)
+	assert.True(t, m.Cancelled)
+
+	tm.WaitFinished(t, teatest.WithFinalTimeout(time.Second))
+}
+
+func TestShouldAbortAddPasswordActionAndGoBack(t *testing.T) {
+	// given
+	tm := teatest.NewTestModel(
+		t,
+		NewAddPasswordModel(test.NewStoreExecutorMock(), utils.NewEmptySession()),
+		teatest.WithInitialTermSize(300, 100),
+	)
+
+	// when
+	test.PressKey(tm, tea.KeyTab)
+	test.PressKey(tm, tea.KeyEnter)
+
+	// then
+	fm := tm.FinalModel(t)
+	m, ok := fm.(AddPasswordModel)
+	assert.True(t, ok)
+	assert.True(t, m.Back)
+
+	tm.WaitFinished(t, teatest.WithFinalTimeout(time.Second))
 }

@@ -48,3 +48,20 @@ func TestGetSessionParameters(t *testing.T) {
 	assert.Equal(t, userPassword, userPassword2)
 	assert.Equal(t, userSalt, userSalt2)
 }
+
+func TestClearSessionParameters(t *testing.T) {
+	// given
+	userID := test.RandomString()
+	userPassword := test.RandomString()
+	userSalt := test.RandomString()
+
+	session := NewSession(userID, userPassword, userSalt)
+
+	// when
+	session.Clear()
+
+	// then
+	assert.Equal(t, "", session.GetUserID())
+	assert.Equal(t, "", session.GetPassphrase())
+	assert.Equal(t, "", session.GetSalt())
+}
