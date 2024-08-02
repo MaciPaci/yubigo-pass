@@ -223,7 +223,7 @@ func TestRunnerMainMenuShouldChooseAddNewPassword(t *testing.T) {
 	loginModel.LoggedIn = true
 	mainMenuModel := cli.NewMainMenuModel()
 	mainMenuModel.Choice = cli.AddPasswordItem
-	addPasswordModel := cli.NewAddPasswordModel(test.NewStoreExecutorMock())
+	addPasswordModel := cli.NewAddPasswordModel(test.NewStoreExecutorMock(), utils.NewEmptySession())
 	addPasswordModel.Cancelled = true
 	serviceContainer := services.Container{
 		Store: test.NewStoreExecutorMock(),
@@ -370,7 +370,7 @@ func TestAddPasswordShouldEncryptAndAddNewPasswordToDBAndThenDecryptIt(t *testin
 
 	tm := teatest.NewTestModel(
 		t,
-		cli.NewAddPasswordModel(database.NewStore(db)),
+		cli.NewAddPasswordModel(database.NewStore(db), utils.NewEmptySession()),
 		teatest.WithInitialTermSize(300, 100),
 	)
 
@@ -424,7 +424,7 @@ func TestAddPasswordShouldNotAddNewPasswordWhenTheSameAlreadyExists(t *testing.T
 
 	tm := teatest.NewTestModel(
 		t,
-		cli.NewAddPasswordModel(database.NewStore(db)),
+		cli.NewAddPasswordModel(database.NewStore(db), utils.NewEmptySession()),
 		teatest.WithInitialTermSize(300, 100),
 	)
 
@@ -456,7 +456,7 @@ func TestAddPasswordShouldNotAddNewPasswordWhenTheSameAlreadyExists(t *testing.T
 	//and add the same password again
 	tm2 := teatest.NewTestModel(
 		t,
-		cli.NewAddPasswordModel(database.NewStore(db)),
+		cli.NewAddPasswordModel(database.NewStore(db), utils.NewEmptySession()),
 		teatest.WithInitialTermSize(300, 100),
 	)
 	addNewPasswordInModel(tm2, title, username, password, url)
@@ -489,7 +489,7 @@ func TestRunnerShouldReturnToMainMenuAfterAddingPassword(t *testing.T) {
 	loginModelSecond := cli.NewLoginModel(test.NewStoreExecutorMock())
 	mainMenuModel := cli.NewMainMenuModel()
 	mainMenuModel.Choice = cli.AddPasswordItem
-	addPasswordModel := cli.NewAddPasswordModel(test.NewStoreExecutorMock())
+	addPasswordModel := cli.NewAddPasswordModel(test.NewStoreExecutorMock(), utils.NewEmptySession())
 	addPasswordModel.PasswordAdded = true
 	mainMenuModelSecond := cli.NewMainMenuModel()
 	mainMenuModelSecond.Choice = cli.QuitItem
@@ -523,7 +523,7 @@ func TestRunnerShouldReturnToMainMenuAfterGoingBack(t *testing.T) {
 	loginModelSecond := cli.NewLoginModel(test.NewStoreExecutorMock())
 	mainMenuModel := cli.NewMainMenuModel()
 	mainMenuModel.Choice = cli.AddPasswordItem
-	addPasswordModel := cli.NewAddPasswordModel(test.NewStoreExecutorMock())
+	addPasswordModel := cli.NewAddPasswordModel(test.NewStoreExecutorMock(), utils.NewEmptySession())
 	addPasswordModel.Back = true
 	mainMenuModelSecond := cli.NewMainMenuModel()
 	mainMenuModelSecond.Choice = cli.QuitItem
