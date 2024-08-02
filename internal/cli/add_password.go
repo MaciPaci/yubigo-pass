@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"yubigo-pass/internal/app/model"
+	"yubigo-pass/internal/app/utils"
 	"yubigo-pass/internal/database"
 
 	"github.com/charmbracelet/bubbles/textinput"
@@ -30,7 +31,8 @@ type AddPasswordModel struct {
 	Back          bool
 	PasswordAdded bool
 
-	store database.StoreExecutor
+	store   database.StoreExecutor
+	session utils.Session
 }
 
 // ExtractPasswordDataFromModel maps data from the model into Password struct
@@ -44,11 +46,12 @@ func ExtractPasswordDataFromModel(m tea.Model) model.Password {
 }
 
 // NewAddPasswordModel returns model for adding a new password
-func NewAddPasswordModel(store database.StoreExecutor) AddPasswordModel {
+func NewAddPasswordModel(store database.StoreExecutor, session utils.Session) AddPasswordModel {
 	m := AddPasswordModel{
-		state:  addPasswordFocused,
-		inputs: make([]textinput.Model, 4),
-		store:  store,
+		state:   addPasswordFocused,
+		inputs:  make([]textinput.Model, 4),
+		store:   store,
+		session: session,
 	}
 
 	var t textinput.Model
@@ -132,7 +135,7 @@ func (m AddPasswordModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else {
 				if key == tea.KeyEnter && m.focusIndex == len(m.inputs) {
 					if m.err == nil {
-						_, err := m.store.GetPassword(m.inputs[0].Value(), m.inputs[1].Value(), m.inputs[2].Value())
+						_, err := m.store.GetPassword(m.session.GetUserID(), m.inputs[0].Value(), m.inputs[1].Value())
 						if err != nil && errors.As(err, &model.PasswordNotFoundError{}) {
 							m.PasswordAdded = true
 							return m, tea.Quit

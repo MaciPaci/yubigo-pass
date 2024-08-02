@@ -1,6 +1,7 @@
 package services
 
 import (
+	"yubigo-pass/internal/app/utils"
 	"yubigo-pass/internal/cli"
 	"yubigo-pass/internal/database"
 
@@ -16,11 +17,11 @@ type TeaModels struct {
 }
 
 // InitTeaModels initializes all Bubbletea models
-func InitTeaModels(store database.StoreExecutor) TeaModels {
+func InitTeaModels(store database.StoreExecutor, session utils.Session) TeaModels {
 	return TeaModels{
 		Login:            cli.NewLoginModel(store),
 		CreateUser:       cli.NewCreateUserModel(store),
 		MainMenu:         cli.NewMainMenuModel(),
-		AddPasswordModel: cli.NewAddPasswordModel(store),
+		AddPasswordModel: cli.NewAddPasswordModel(store, session),
 	}
 }

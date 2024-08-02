@@ -14,7 +14,8 @@ func Build() Container {
 		logrus.Fatalf("error building database: %s", err)
 	}
 	store := database.NewStore(db)
-	teaModels := InitTeaModels(store)
+	session := utils.NewEmptySession()
+	teaModels := InitTeaModels(store, session)
 
 	return Container{
 		Store:  store,
