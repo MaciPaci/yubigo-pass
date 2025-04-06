@@ -10,9 +10,11 @@ import (
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/mritd/bubbles/common"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/nbutton23/zxcvbn-go"
 )
 
+// sessionStateAddPassword defines the focus state within the add password view.
 type sessionStateAddPassword uint
 
 const (
@@ -20,38 +22,44 @@ const (
 	addPasswordBackButtonFocused
 )
 
-// AddPasswordModel is a model for adding a new password
+// AddPasswordModel is a model for adding a new password.
 type AddPasswordModel struct {
-	state         sessionStateAddPassword
-	focusIndex    int
-	inputs        []textinput.Model
-	showErr       bool
-	err           error
-	Cancelled     bool
-	Back          bool
-	PasswordAdded bool
+	state            sessionStateAddPassword
+	focusIndex       int
+	inputs           []textinput.Model
+	showErr          bool
+	err              error
+	Cancelled        bool
+	Back             bool
+	PasswordAdded    bool
+	passwordStrength int // Stores the zxcvbn score (0-4)
 
 	store   database.StoreExecutor
 	session utils.Session
 }
 
-// ExtractPasswordDataFromModel maps data from the model into Password struct
+// ExtractPasswordDataFromModel maps data from the model into Password struct.
 func ExtractPasswordDataFromModel(m tea.Model) model.Password {
+	addModel, ok := m.(AddPasswordModel)
+	if !ok {
+		return model.Password{}
+	}
 	return model.Password{
-		Title:    m.(AddPasswordModel).inputs[0].Value(),
-		Username: m.(AddPasswordModel).inputs[1].Value(),
-		Password: m.(AddPasswordModel).inputs[2].Value(),
-		Url:      m.(AddPasswordModel).inputs[3].Value(),
+		Title:    addModel.inputs[0].Value(),
+		Username: addModel.inputs[1].Value(),
+		Password: addModel.inputs[2].Value(),
+		Url:      addModel.inputs[3].Value(),
 	}
 }
 
-// NewAddPasswordModel returns model for adding a new password
+// NewAddPasswordModel returns model for adding a new password.
 func NewAddPasswordModel(store database.StoreExecutor, session utils.Session) AddPasswordModel {
 	m := AddPasswordModel{
-		state:   addPasswordFocused,
-		inputs:  make([]textinput.Model, 4),
-		store:   store,
-		session: session,
+		state:            addPasswordFocused,
+		inputs:           make([]textinput.Model, 4),
+		store:            store,
+		session:          session,
+		passwordStrength: 0,
 	}
 
 	var t textinput.Model
@@ -76,11 +84,14 @@ func NewAddPasswordModel(store database.StoreExecutor, session utils.Session) Ad
 			t.Placeholder = "Password"
 			t.EchoMode = textinput.EchoPassword
 			t.EchoCharacter = '•'
+			t.PromptStyle = blurredStyle
+			t.TextStyle = blurredStyle
+			t.CharLimit = 0
 		case 3:
 			t.Placeholder = "URL (optional)"
 			t.PromptStyle = blurredStyle
 			t.TextStyle = blurredStyle
-			t.CharLimit = 64
+			t.CharLimit = 256
 		}
 		m.inputs[i] = t
 	}
@@ -88,111 +99,166 @@ func NewAddPasswordModel(store database.StoreExecutor, session utils.Session) Ad
 	return m
 }
 
-// Init initializes AddPasswordModel
+// Init initializes AddPasswordModel.
 func (m AddPasswordModel) Init() tea.Cmd {
-	m.inputs[0].Focus()
 	for i := range m.inputs {
 		m.inputs[i].SetValue("")
+		m.inputs[i].Blur()
+		m.inputs[i].PromptStyle = blurredStyle
+		m.inputs[i].TextStyle = blurredStyle
 	}
+	m.inputs[0].Focus()
+	m.inputs[0].PromptStyle = focusedStyle
+	m.inputs[0].TextStyle = focusedStyle
+
 	return textinput.Blink
 }
 
-// Update updates AddPasswordModel
+// Update updates the AddPasswordModel based on user input.
 func (m AddPasswordModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmds []tea.Cmd
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		if m.state == addPasswordFocused && msg.Type == tea.KeyCtrlG {
+			generatedPassword, err := utils.GeneratePassword(utils.DefaultLength, true, true, true, true)
+			if err != nil {
+				m.err = fmt.Errorf("password generation failed: %w", err)
+				m.showErr = true
+				return m, nil
+			}
+			passwordInputIndex := 2
+			m.inputs[passwordInputIndex].SetValue(generatedPassword)
+			m.inputs[passwordInputIndex].CursorEnd()
+			m.focusIndex = passwordInputIndex
+			updateFocus(&m)
+			m.passwordStrength = calculateStrength(&m)
+			cmds = append(cmds, textinput.Blink)
+			return m, tea.Batch(cmds...)
+		}
+
 		switch msg.Type {
 		case tea.KeyCtrlC, tea.KeyEsc:
 			m.Cancelled = true
 			return m, tea.Quit
+		}
 
-		case tea.KeyTab, tea.KeyShiftTab:
-			if m.state == addPasswordFocused {
+		switch m.state {
+		case addPasswordFocused:
+			switch msg.Type {
+			case tea.KeyTab:
 				m.state = addPasswordBackButtonFocused
-				for i := 0; i <= len(m.inputs)-1; i++ {
-					m.inputs[i].Blur()
-					m.inputs[i].PromptStyle = noStyle
-					m.inputs[i].TextStyle = noStyle
+				if m.focusIndex >= 0 && m.focusIndex < len(m.inputs) {
+					m.inputs[m.focusIndex].Blur()
+					m.inputs[m.focusIndex].PromptStyle = blurredStyle
+					m.inputs[m.focusIndex].TextStyle = blurredStyle
 				}
-			} else {
-				var cmd tea.Cmd
-				m.state = addPasswordFocused
-				if m.focusIndex != len(m.inputs) {
-					m.inputs[m.focusIndex].PromptStyle = focusedStyle
-					m.inputs[m.focusIndex].TextStyle = focusedStyle
-					cmd = m.inputs[m.focusIndex].Focus()
-				}
-				return m, cmd
-			}
 
-		case tea.KeyEnter, tea.KeyUp, tea.KeyDown, tea.KeyPgDown:
-			key := msg.Type
-			if m.state == addPasswordBackButtonFocused {
-				if key == tea.KeyEnter {
-					m.Back = true
-					return m, tea.Quit
+			case tea.KeyShiftTab:
+				m.state = addPasswordBackButtonFocused
+				if m.focusIndex >= 0 && m.focusIndex < len(m.inputs) {
+					m.inputs[m.focusIndex].Blur()
+					m.inputs[m.focusIndex].PromptStyle = blurredStyle
+					m.inputs[m.focusIndex].TextStyle = blurredStyle
 				}
-			} else {
-				if key == tea.KeyEnter && m.focusIndex == len(m.inputs) {
-					if m.err == nil {
+
+			case tea.KeyEnter:
+				if m.focusIndex == len(m.inputs) {
+					m.err = validateAddPasswordModelInputs(m.inputs, m.err)
+					if m.err != nil {
+						m.showErr = true
+					} else {
 						_, err := m.store.GetPassword(m.session.GetUserID(), m.inputs[0].Value(), m.inputs[1].Value())
 						if err != nil && errors.As(err, &model.PasswordNotFoundError{}) {
 							m.PasswordAdded = true
 							return m, tea.Quit
+						} else if err == nil {
+							m.err = fmt.Errorf("password entry with this title/username already exists")
+							m.showErr = true
+						} else {
+							m.err = fmt.Errorf("failed to check for existing password: %w", err)
+							m.showErr = true
 						}
-						m.err = fmt.Errorf("this password already exists, change inputs or update existing password")
 					}
-					m.showErr = true
+					return m, nil
+				} else {
+					m.focusIndex++
+					if m.focusIndex > len(m.inputs) {
+						m.focusIndex = len(m.inputs)
+					}
+					updateFocus(&m)
+					cmds = append(cmds, textinput.Blink)
 				}
 
-				// Cycle indexes
+			case tea.KeyUp, tea.KeyDown:
+				key := msg.Type
 				if key == tea.KeyUp {
 					m.focusIndex--
 				} else {
 					m.focusIndex++
 				}
-
 				if m.focusIndex > len(m.inputs) {
 					m.focusIndex = 0
 				} else if m.focusIndex < 0 {
 					m.focusIndex = len(m.inputs)
 				}
+				updateFocus(&m)
+				cmds = append(cmds, textinput.Blink)
 
-				cmds := make([]tea.Cmd, len(m.inputs))
-				if m.state == addPasswordFocused {
-					for i := 0; i <= len(m.inputs)-1; i++ {
-						if i == m.focusIndex {
-							// Set focused state
-							cmds[i] = m.inputs[i].Focus()
-							m.inputs[i].PromptStyle = focusedStyle
-							m.inputs[i].TextStyle = focusedStyle
-							continue
-						}
-						// Remove focused state
-						m.inputs[i].Blur()
-						m.inputs[i].PromptStyle = noStyle
-						m.inputs[i].TextStyle = noStyle
-					}
-				}
-
-				return m, tea.Batch(cmds...)
+			case tea.KeyRunes, tea.KeySpace, tea.KeyBackspace:
+				m.showErr = false
+				m.err = nil
 			}
-		case tea.KeyRunes:
-			m.showErr = false
-			m.err = nil
+
+		case addPasswordBackButtonFocused:
+			switch msg.Type {
+			case tea.KeyTab, tea.KeyShiftTab, tea.KeyUp, tea.KeyDown:
+				m.state = addPasswordFocused
+				updateFocus(&m)
+				cmds = append(cmds, textinput.Blink)
+
+			case tea.KeyEnter:
+				m.Back = true
+				return m, tea.Quit
+			}
 		}
 	}
-	cmd := updateAddPasswordModelInputs(&m, msg)
-	m.err = validateAddPasswordModelInputs(m.inputs, m.err)
 
-	return m, cmd
+	if m.focusIndex >= 0 && m.focusIndex < len(m.inputs) {
+		inputCmds := updateAddPasswordModelInputs(&m, msg)
+		cmds = append(cmds, inputCmds)
+	}
+
+	if msgCouldChangePassword(msg) {
+		m.passwordStrength = calculateStrength(&m)
+	}
+
+	return m, tea.Batch(cmds...)
 }
 
+// updateFocus is a helper to update input focus styles and return focus command.
+func updateFocus(m *AddPasswordModel) {
+	isAddButtonFocused := m.focusIndex == len(m.inputs)
+
+	for i := 0; i < len(m.inputs); i++ {
+		shouldFocus := m.state == addPasswordFocused && !isAddButtonFocused && i == m.focusIndex
+
+		if shouldFocus {
+			m.inputs[i].Focus()
+			m.inputs[i].PromptStyle = focusedStyle
+			m.inputs[i].TextStyle = focusedStyle
+		} else {
+			m.inputs[i].Blur()
+			m.inputs[i].PromptStyle = blurredStyle
+			m.inputs[i].TextStyle = blurredStyle
+		}
+	}
+}
+
+// updateAddPasswordModelInputs updates the text input fields.
 func updateAddPasswordModelInputs(m *AddPasswordModel, msg tea.Msg) tea.Cmd {
 	cmds := make([]tea.Cmd, len(m.inputs))
 
-	// Only text inputs with Focus() set will respond, so it's safe to simply
-	// update all of them here without any further logic.
 	for i := range m.inputs {
 		m.inputs[i], cmds[i] = m.inputs[i].Update(msg)
 	}
@@ -200,52 +266,103 @@ func updateAddPasswordModelInputs(m *AddPasswordModel, msg tea.Msg) tea.Cmd {
 	return tea.Batch(cmds...)
 }
 
-// View renders AddPasswordModel
+// msgCouldChangePassword checks if a message could have changed the password input.
+func msgCouldChangePassword(msg tea.Msg) bool {
+	switch msg.(type) {
+	case tea.KeyMsg:
+		return true
+	default:
+		return false
+	}
+}
+
+// calculateStrength calculates the password strength score using zxcvbn.
+func calculateStrength(m *AddPasswordModel) int {
+	password := m.inputs[2].Value()
+	if password != "" {
+		userInputs := []string{
+			m.inputs[0].Value(),
+			m.inputs[1].Value(),
+		}
+		var filteredInputs []string
+		for _, input := range userInputs {
+			if input != "" {
+				filteredInputs = append(filteredInputs, input)
+			}
+		}
+		return zxcvbn.PasswordStrength(password, filteredInputs).Score
+	}
+	return 0
+}
+
+// View renders AddPasswordModel.
 func (m AddPasswordModel) View() string {
 	if m.Cancelled {
 		return quitTextStyle.Render("Quitting.")
 	}
-	var b strings.Builder
+	if m.Back {
+		return quitTextStyle.Render("Going back...")
+	}
 
-	b.WriteString(titleStyle.Render("ADD A NEW PASSWORD") + "\n\n")
+	var b strings.Builder
+	b.WriteString(titleStyle.Render("ADD A NEW PASSWORD"))
 
 	var screenMsg string
-	if m.err != nil {
-		if m.showErr {
-			screenMsg = common.FontColor(fmt.Sprintf("%s ERROR: %s\n", validateErrPrefix, m.err.Error()), colorValidateErr)
-		}
+	if m.err != nil && m.showErr {
+		screenMsg = fmt.Sprintf("\n%s %s",
+			validateErrPrefix,
+			lipgloss.NewStyle().Foreground(lipgloss.Color(colorValidateErr)).Render("ERROR: "+m.err.Error()),
+		)
+	} else if m.PasswordAdded {
+		screenMsg = fmt.Sprintf("\n%s %s",
+			validateOkPrefix,
+			lipgloss.NewStyle().Foreground(lipgloss.Color(colorValidateOk)).Render("Password validation OK. Saving..."),
+		)
 	}
 
-	if m.PasswordAdded {
-		screenMsg = common.FontColor(fmt.Sprintf("\n%s Password added.\n", validateOkPrefix), colorValidateOk)
-	}
+	b.WriteString("\n")
 
 	for i := range m.inputs {
 		b.WriteString(m.inputs[i].View())
-		if i < len(m.inputs)-1 {
-			b.WriteRune('\n')
+
+		if i == 2 && m.inputs[i].Value() != "" {
+			strengthScore := m.passwordStrength
+			strengthText := utils.GetStrengthText(strengthScore)
+			strengthStyle := utils.GetStrengthStyle(strengthScore)
+			strengthIndicator := strengthStyle.Render(fmt.Sprintf("[%s]", strengthText))
+			b.WriteString("  " + strengthIndicator)
 		}
+		b.WriteRune('\n')
 	}
 
-	addButton := &blurredAddButton
-	backButton := &blurredBackButton
-	if m.focusIndex == len(m.inputs) && m.state == addPasswordFocused {
-		addButton = &focusedAddButton
-		backButton = &blurredBackButton
-	}
-	if m.state == addPasswordBackButtonFocused {
-		addButton = &blurredAddButton
-		backButton = &focusedBackButton
+	addBtn := blurredAddButton
+	backBtn := blurredBackButton
+
+	if m.state == addPasswordFocused {
+		if m.focusIndex == len(m.inputs) {
+			addBtn = focusedAddButton
+		}
+	} else if m.state == addPasswordBackButtonFocused {
+		backBtn = focusedBackButton
 	}
 
-	fmt.Fprintf(&b, "\n\n%s\t\t%s\n%s\n", *addButton, *backButton, screenMsg)
+	buttonRow := lipgloss.JoinHorizontal(lipgloss.Top, addBtn, "    ", backBtn)
+	fmt.Fprintf(&b, "\n%s", buttonRow)
+
+	if screenMsg != "" {
+		b.WriteString(screenMsg + "\n")
+	}
+
+	help := " (Tab/Shift+Tab: Navigate, Enter: Select/Confirm, Ctrl+G: Generate Password, Esc: Cancel)"
+	b.WriteString(blurredStyle.Render("\n\n" + help))
 
 	return b.String()
 }
 
-func validateAddPasswordModelInputs(input []textinput.Model, err error) error {
-	if err != nil {
-		return err
+// validateAddPasswordModelInputs checks if required fields are empty.
+func validateAddPasswordModelInputs(input []textinput.Model, existingErr error) error {
+	if existingErr != nil && !strings.Contains(existingErr.Error(), "cannot be empty") {
+		return existingErr
 	}
 
 	titleIsEmpty := func() bool { return strings.TrimSpace(input[0].Value()) == "" }
@@ -253,7 +370,8 @@ func validateAddPasswordModelInputs(input []textinput.Model, err error) error {
 	passwordIsEmpty := func() bool { return strings.TrimSpace(input[2].Value()) == "" }
 
 	if titleIsEmpty() || usernameIsEmpty() || passwordIsEmpty() {
-		return fmt.Errorf("only optional fields can be empty")
+		return fmt.Errorf("title, username, and password fields cannot be empty")
 	}
+
 	return nil
 }
