@@ -1,8 +1,10 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"strings"
+	"yubigo-pass/internal/app/model"
 	"yubigo-pass/internal/database"
 
 	"github.com/mritd/bubbles/common"
@@ -16,20 +18,6 @@ type sessionStateCreateUser uint
 const (
 	createUserState sessionStateCreateUser = iota
 	backButtonFocused
-)
-
-var (
-	focusedSubmitButton = focusedStyle.Copy().Render("[ Submit ]")
-	blurredSubmitButton = fmt.Sprintf("[ %s ]", blurredStyle.Render("Submit"))
-	focusedBackButton   = focusedStyle.Copy().Render("[ Back ]")
-	blurredBackButton   = fmt.Sprintf("[ %s ]", blurredStyle.Render("Back"))
-)
-
-const (
-	validateOkPrefix  = "✔"
-	validateErrPrefix = "✘"
-	colorValidateOk   = "2"
-	colorValidateErr  = "1"
 )
 
 // CreateUserModel is a model for user creation
@@ -131,8 +119,8 @@ func (m CreateUserModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else {
 				if key == tea.KeyEnter && m.focusIndex == len(m.inputs) {
 					if m.err == nil {
-						user, _ := m.store.GetUser(m.inputs[0].Value())
-						if user.Username == "" {
+						_, err := m.store.GetUser(m.inputs[0].Value())
+						if err != nil && errors.As(err, &model.UserNotFoundError{}) {
 							m.UserCreated = true
 							return m, tea.Quit
 						}
@@ -203,7 +191,7 @@ func (m CreateUserModel) View() string {
 	}
 	var b strings.Builder
 
-	b.WriteString("\n----------CREATE NEW USER----------\n\n")
+	b.WriteString(titleStyle.Render("CREATE NEW USER") + "\n\n")
 
 	var screenMsg string
 	if m.err != nil {

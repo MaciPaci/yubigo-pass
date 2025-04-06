@@ -32,13 +32,13 @@ func TestCreateUserShouldNotValidateIncorrectInputWithEmptyPassword(t *testing.T
 	incorrectInput[1].SetValue("")
 
 	// expected
-	expectedError := errors.New("password cannot empty")
+	expectedError := errors.New("password cannot be empty")
 
 	// when
 	err := validateCreateUserModelInputs(incorrectInput, nil)
 
 	// then
-	assert.Error(t, expectedError, err)
+	assert.EqualError(t, err, expectedError.Error())
 }
 
 func TestCreateUserShouldNotValidateIncorrectInputWithEmptyUsername(t *testing.T) {
@@ -48,13 +48,13 @@ func TestCreateUserShouldNotValidateIncorrectInputWithEmptyUsername(t *testing.T
 	incorrectInput[1].SetValue(test.RandomString())
 
 	// expected
-	expectedError := errors.New("username cannot empty")
+	expectedError := errors.New("username cannot be empty")
 
 	// when
 	err := validateCreateUserModelInputs(incorrectInput, nil)
 
 	// then
-	assert.Error(t, expectedError, err)
+	assert.EqualError(t, err, expectedError.Error())
 }
 
 func TestCreateUserShouldNotValidateIncorrectInputWithEmptyBothFields(t *testing.T) {
@@ -64,13 +64,13 @@ func TestCreateUserShouldNotValidateIncorrectInputWithEmptyBothFields(t *testing
 	incorrectInput[1].SetValue("")
 
 	// expected
-	expectedError := errors.New("username and password cannot empty")
+	expectedError := errors.New("username and password cannot be empty")
 
 	// when
 	err := validateCreateUserModelInputs(incorrectInput, nil)
 
 	// then
-	assert.Error(t, expectedError, err)
+	assert.EqualError(t, err, expectedError.Error())
 }
 
 func TestCreateUserShouldReturnErrorIfErrorWasPassed(t *testing.T) {
@@ -84,5 +84,5 @@ func TestCreateUserShouldReturnErrorIfErrorWasPassed(t *testing.T) {
 	err := validateCreateUserModelInputs(correctInput, passedError)
 
 	// then
-	assert.Error(t, passedError, err)
+	assert.EqualError(t, err, passedError.Error())
 }
