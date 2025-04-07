@@ -102,7 +102,8 @@ func TestAppModel_CreateUserFlow_Success(t *testing.T) {
 	_, dbErr := store.GetUser(newUsername)
 	assert.NoError(t, dbErr, "User should exist in database after creation")
 
-	tm.Quit()
+	err = tm.Quit()
+	require.NoError(t, err, "Failed to quit the model")
 }
 
 func TestAppModel_CreateUserFlow_UserAlreadyExists(t *testing.T) {
@@ -138,6 +139,12 @@ func TestAppModel_CreateUserFlow_UserAlreadyExists(t *testing.T) {
 	test.TypeString(tm, newPassword)
 	test.PressKey(tm, tea.KeyDown)  // -> Submit Button
 	test.PressKey(tm, tea.KeyEnter) // Submit Create User
+
+	// Wait for error message
+	teatest.WaitFor(t, tm.Output(), func(bts []byte) bool {
+		return bytes.Contains(bts, []byte("Error: failed to create user: database error creating user: failed to create user: user"+
+			" already exists: "))
+	}, teatest.WithDuration(2*time.Second))
 
 	err = tm.Quit()
 	require.NoError(t, err, "Failed to quit the model")
@@ -317,6 +324,11 @@ func TestAppModel_AddPasswordFlow_PasswordAlreadyExists(t *testing.T) {
 	test.PressKey(tm, tea.KeyDown)  // -> URL
 	test.PressKey(tm, tea.KeyDown)  // -> Add Button
 	test.PressKey(tm, tea.KeyEnter) // Submit Add Password
+
+	// Wait for error message
+	teatest.WaitFor(t, tm.Output(), func(bts []byte) bool {
+		return bytes.Contains(bts, []byte("Error: failed to add password: database error adding password: password already exists for user "))
+	}, teatest.WithDuration(2*time.Second))
 
 	err = tm.Quit()
 	require.NoError(t, err, "Failed to quit the model")
