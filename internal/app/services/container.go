@@ -6,6 +6,5 @@ import (
 
 // Container is a struct holding all app services
 type Container struct {
-	Store  database.StoreExecutor
-	Models TeaModels
+	Store database.StoreExecutor
 }

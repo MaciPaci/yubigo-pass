@@ -3,7 +3,6 @@
 package cli
 
 import (
-	"errors"
 	"testing"
 	"yubigo-pass/test"
 
@@ -27,7 +26,7 @@ func TestAddPasswordShouldValidateCorrectInput(t *testing.T) {
 	inputs[2].SetValue(test.RandomString())
 	inputs[3].SetValue(test.RandomString())
 
-	err := validateAddPasswordModelInputs(inputs, nil)
+	err := validateAddPasswordModelInputs(inputs)
 
 	assert.NoError(t, err, "Validation should pass for correct input")
 }
@@ -42,7 +41,7 @@ func TestAddPasswordShouldValidateCorrectInputWithEmptyURL(t *testing.T) {
 	inputs[2].SetValue(test.RandomString())
 	inputs[3].SetValue("")
 
-	err := validateAddPasswordModelInputs(inputs, nil)
+	err := validateAddPasswordModelInputs(inputs)
 
 	assert.NoError(t, err, "Validation should pass with empty URL")
 }
@@ -112,46 +111,10 @@ func TestAddPasswordShouldNotValidateEmptyRequiredField(t *testing.T) {
 			inputs[2].SetValue(tc.password)
 			inputs[3].SetValue(test.RandomString())
 
-			err := validateAddPasswordModelInputs(inputs, nil)
+			err := validateAddPasswordModelInputs(inputs)
 
 			require.Error(t, err, "Expected an error for empty required field")
 			assert.EqualError(t, err, tc.expectedErr, "Error message mismatch")
 		})
 	}
-}
-
-func TestAddPasswordShouldReturnPassedErrorIfNotValidation(t *testing.T) {
-	inputs := make([]textinput.Model, 4)
-	for i := range inputs {
-		inputs[i] = newTestInput()
-	}
-	inputs[0].SetValue(test.RandomString())
-	inputs[1].SetValue(test.RandomString())
-	inputs[2].SetValue(test.RandomString())
-	inputs[3].SetValue(test.RandomString())
-
-	passedError := errors.New("some other distinct error occurred previously")
-
-	err := validateAddPasswordModelInputs(inputs, passedError)
-
-	require.Error(t, err, "Expected the passed error to be returned")
-	assert.Equal(t, passedError, err, "The returned error should be the exact error passed in")
-	assert.EqualError(t, err, "some other distinct error occurred previously")
-}
-
-func TestAddPasswordShouldClearPassedValidationError(t *testing.T) {
-	inputs := make([]textinput.Model, 4)
-	for i := range inputs {
-		inputs[i] = newTestInput()
-	}
-	inputs[0].SetValue(test.RandomString())
-	inputs[1].SetValue(test.RandomString())
-	inputs[2].SetValue(test.RandomString())
-	inputs[3].SetValue(test.RandomString())
-
-	passedValidationError := errors.New("title, username, and password fields cannot be empty")
-
-	err := validateAddPasswordModelInputs(inputs, passedValidationError)
-
-	assert.NoError(t, err, "Expected nil error when input is valid, even if validation error was passed")
 }

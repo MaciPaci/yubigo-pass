@@ -1,24 +1,22 @@
 package services
 
 import (
+	"fmt"
 	"yubigo-pass/internal/app/utils"
 	"yubigo-pass/internal/database"
-
-	"github.com/sirupsen/logrus"
 )
 
-// Build builds all app services
-func Build() Container {
+// Build initializes and wires up foundational application dependencies.
+// It now only focuses on services like the database store.
+func Build() (Container, error) {
 	db, err := database.CreateDB(utils.CreatePathForDB(), database.MigrationPath)
 	if err != nil {
-		logrus.Fatalf("error building database: %s", err)
+		return Container{}, fmt.Errorf("error initializing database: %w", err)
 	}
+
 	store := database.NewStore(db)
-	session := utils.NewEmptySession()
-	teaModels := InitTeaModels(store, session)
 
 	return Container{
-		Store:  store,
-		Models: teaModels,
-	}
+		Store: store,
+	}, nil
 }

@@ -54,25 +54,17 @@ func GeneratePassword(length int, includeLower, includeUpper, includeDigits, inc
 		password[i] = charSet[num.Int64()]
 	}
 
-	if includeLower && !strings.ContainsAny(string(password), lowercaseChars) {
-		idx, _ := rand.Int(rand.Reader, big.NewInt(int64(length)))
-		charIdx, _ := rand.Int(rand.Reader, big.NewInt(int64(len(lowercaseChars))))
-		password[idx.Int64()] = lowercaseChars[charIdx.Int64()]
+	missingChars := map[bool]string{
+		includeLower:   lowercaseChars,
+		includeUpper:   uppercaseChars,
+		includeDigits:  digitChars,
+		includeSymbols: symbolChars,
 	}
-	if includeUpper && !strings.ContainsAny(string(password), uppercaseChars) {
-		idx, _ := rand.Int(rand.Reader, big.NewInt(int64(length)))
-		charIdx, _ := rand.Int(rand.Reader, big.NewInt(int64(len(uppercaseChars))))
-		password[idx.Int64()] = uppercaseChars[charIdx.Int64()]
-	}
-	if includeDigits && !strings.ContainsAny(string(password), digitChars) {
-		idx, _ := rand.Int(rand.Reader, big.NewInt(int64(length)))
-		charIdx, _ := rand.Int(rand.Reader, big.NewInt(int64(len(digitChars))))
-		password[idx.Int64()] = digitChars[charIdx.Int64()]
-	}
-	if includeSymbols && !strings.ContainsAny(string(password), symbolChars) {
-		idx, _ := rand.Int(rand.Reader, big.NewInt(int64(length)))
-		charIdx, _ := rand.Int(rand.Reader, big.NewInt(int64(len(symbolChars))))
-		password[idx.Int64()] = symbolChars[charIdx.Int64()]
+
+	for include, chars := range missingChars {
+		if include && !strings.ContainsAny(string(password), chars) {
+			password = addMissingCharacters(password, length, chars)
+		}
 	}
 
 	// Fisher-Yates shuffle
@@ -86,6 +78,13 @@ func GeneratePassword(length int, includeLower, includeUpper, includeDigits, inc
 	}
 
 	return string(password), nil
+}
+
+func addMissingCharacters(password []byte, length int, characterSet string) []byte {
+	idx, _ := rand.Int(rand.Reader, big.NewInt(int64(length)-1))
+	charIdx, _ := rand.Int(rand.Reader, big.NewInt(int64(len(characterSet))-1))
+	password[idx.Int64()] = lowercaseChars[charIdx.Int64()]
+	return password
 }
 
 // GetStrengthStyle returns the style for the password strength score.
