@@ -1,13 +1,9 @@
 package cli
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 	"yubigo-pass/internal/app/common"
-	"yubigo-pass/internal/app/crypto"
-	"yubigo-pass/internal/app/model"
-	"yubigo-pass/internal/app/utils"
 	"yubigo-pass/internal/database"
 
 	"github.com/charmbracelet/lipgloss"
@@ -142,27 +138,7 @@ func (m LoginModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.showErr = true
 					return m, nil
 				}
-
-				user, err := m.store.GetUser(m.inputs[0].Value())
-				if err != nil {
-					if errors.As(err, &model.UserNotFoundError{}) {
-						m.err = fmt.Errorf("incorrect username or password")
-					} else {
-						m.err = fmt.Errorf("login failed: %w", err)
-					}
-					m.showErr = true
-					return m, nil
-				}
-
-				hashedPassword := crypto.HashPasswordWithSalt(m.inputs[1].Value(), user.Salt)
-				if hashedPassword == user.Password {
-					session := utils.NewSession(user.UserID, m.inputs[1].Value(), user.Salt)
-					return m, common.LogSuccessCmd(session)
-				}
-
-				m.err = fmt.Errorf("incorrect username or password")
-				m.showErr = true
-				return m, nil
+				return m, common.LoginCmd(m.inputs[0].Value(), m.inputs[1].Value())
 
 			} else if m.state == loginInputsFocused && m.focusIndex < len(m.inputs) {
 				m.focusIndex++

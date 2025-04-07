@@ -10,8 +10,9 @@ import (
 	"yubigo-pass/internal/app/services"
 	"yubigo-pass/internal/app/utils"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/google/uuid"
 )
 
@@ -24,6 +25,7 @@ type AppModel struct {
 	session     utils.Session
 	container   services.Container
 	lastError   error
+	showErr     bool
 }
 
 // NewAppModel creates the initial state of the top-level application model.
@@ -60,6 +62,7 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case common.ErrorMsg:
 		m.lastError = msg.Err
+		m.showErr = true
 		return m, nil
 
 	case common.StateMsg:
@@ -104,9 +107,13 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, m.activeModel.Init()
 		}
 
-	case common.LoginSuccessMsg:
+	case common.LoginMsg:
 		m.lastError = nil
-		m.session = msg.Session
+		session, err := m.attemptLogin(msg.Username, msg.Password)
+		if err != nil {
+			return m, common.ErrCmd(err)
+		}
+		m.session = session
 		m.activeModel = NewMainMenuModel()
 		return m, m.activeModel.Init()
 
@@ -128,6 +135,7 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	default:
 		if m.activeModel != nil {
+			m.showErr = false
 			var updatedModel tea.Model
 			updatedModel, cmd = m.activeModel.Update(msg)
 			m.activeModel = updatedModel
@@ -150,18 +158,16 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m AppModel) View() string {
 	var viewBuilder strings.Builder
 
-	if m.lastError != nil {
-		errorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Bold(true).MarginBottom(1)
-		viewBuilder.WriteString(errorStyle.Render(fmt.Sprintf("Error: %v", m.lastError)))
-		viewBuilder.WriteString("\n")
-	}
-
 	if m.activeModel != nil {
 		viewBuilder.WriteString(m.activeModel.View())
 	} else {
 		viewBuilder.WriteString("Error: No active model to display.")
 	}
 
+	if m.lastError != nil && m.showErr {
+		errorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(colorValidateErr))
+		fmt.Fprintf(&viewBuilder, "\n%s %s\n", validateErrPrefix, errorStyle.Render(m.lastError.Error()))
+	}
 	return viewBuilder.String()
 }
 
@@ -220,4 +226,23 @@ func (m *AppModel) addNewPassword(title, username, password, url string) error {
 	}
 
 	return nil
+}
+
+// attemptLogin handles the logic for logging in a user by verifying their credentials.
+func (m *AppModel) attemptLogin(username, password string) (utils.Session, error) {
+	user, err := m.container.Store.GetUser(username)
+	if err != nil {
+		if errors.As(err, &model.UserNotFoundError{}) {
+			return utils.NewEmptySession(), fmt.Errorf("incorrect username or password")
+		} else {
+			return utils.NewEmptySession(), fmt.Errorf("login failed: %w", err)
+		}
+	}
+
+	hashedPassword := crypto.HashPasswordWithSalt(password, user.Salt)
+	if hashedPassword == user.Password {
+		session := utils.NewSession(user.UserID, password, user.Salt)
+		return session, nil
+	}
+	return utils.NewEmptySession(), fmt.Errorf("incorrect username or password")
 }

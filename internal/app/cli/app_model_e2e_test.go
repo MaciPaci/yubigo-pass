@@ -142,8 +142,7 @@ func TestAppModel_CreateUserFlow_UserAlreadyExists(t *testing.T) {
 
 	// Wait for error message
 	teatest.WaitFor(t, tm.Output(), func(bts []byte) bool {
-		return bytes.Contains(bts, []byte("Error: failed to create user: database error creating user: failed to create user: user"+
-			" already exists: "))
+		return bytes.Contains(bts, []byte("failed to create user: database error creating user: failed to create user: user already exists:"))
 	}, teatest.WithDuration(2*time.Second))
 
 	err = tm.Quit()
@@ -327,7 +326,7 @@ func TestAppModel_AddPasswordFlow_PasswordAlreadyExists(t *testing.T) {
 
 	// Wait for error message
 	teatest.WaitFor(t, tm.Output(), func(bts []byte) bool {
-		return bytes.Contains(bts, []byte("Error: failed to add password: database error adding password: password already exists for user "))
+		return bytes.Contains(bts, []byte("failed to add password: database error adding password: password already exists for user "))
 	}, teatest.WithDuration(2*time.Second))
 
 	err = tm.Quit()

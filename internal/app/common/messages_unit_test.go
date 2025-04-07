@@ -7,30 +7,25 @@ import (
 	"fmt"
 	"testing"
 	"yubigo-pass/internal/app/model"
-	"yubigo-pass/internal/app/utils"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// TestLogSuccessCmd verifies that LogSuccessCmd creates the correct LoginSuccessMsg.
-func TestLogSuccessCmd(t *testing.T) {
-	expectedUserID := "user123"
+// TestLoginCmd verifies that LoginsCmd creates the correct LoginSuccessMsg.
+func TestLoginCmd(t *testing.T) {
+	expectedUsername := "user123"
 	expectedPassphrase := "passphrase"
-	expectedSalt := "salt123"
-	session := utils.NewSession(expectedUserID, expectedPassphrase, expectedSalt)
 
-	cmd := LogSuccessCmd(session)
+	cmd := LoginCmd(expectedUsername, expectedPassphrase)
 	require.NotNil(t, cmd, "Command should not be nil")
 
 	msg := cmd()
-	resultMsg, ok := msg.(LoginSuccessMsg)
+	resultMsg, ok := msg.(LoginMsg)
 	require.True(t, ok, "Message should be of type LoginSuccessMsg")
 
-	assert.Equal(t, session, resultMsg.Session)
-	assert.Equal(t, expectedUserID, resultMsg.Session.GetUserID())
-	assert.Equal(t, expectedPassphrase, resultMsg.Session.GetPassphrase())
-	assert.Equal(t, expectedSalt, resultMsg.Session.GetSalt())
+	assert.Equal(t, expectedUsername, resultMsg.Username)
+	assert.Equal(t, expectedPassphrase, resultMsg.Password)
 }
 
 // TestCreateUserCmd verifies that CreateUserCmd creates the correct UserToCreateMsg.

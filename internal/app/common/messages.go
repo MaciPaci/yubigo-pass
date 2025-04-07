@@ -2,7 +2,6 @@ package common
 
 import (
 	"yubigo-pass/internal/app/model"
-	"yubigo-pass/internal/app/utils"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -36,9 +35,10 @@ type ErrorMsg struct {
 	Err error
 }
 
-// LoginSuccessMsg carries the user session details upon successful authentication.
-type LoginSuccessMsg struct {
-	Session utils.Session
+// LoginMsg carries the user details upon authentication attempt.
+type LoginMsg struct {
+	Username string
+	Password string
 }
 
 // UserToCreateMsg carries the necessary data for initiating the user creation process.
@@ -52,10 +52,10 @@ type PasswordToAddMsg struct {
 	Data model.Password
 }
 
-// LogSuccessCmd returns a command that sends a LoginSuccessMsg.
-func LogSuccessCmd(s utils.Session) tea.Cmd {
+// LoginCmd returns a command that sends a LoginMsg.
+func LoginCmd(username, password string) tea.Cmd {
 	return func() tea.Msg {
-		return LoginSuccessMsg{Session: s}
+		return LoginMsg{Username: username, Password: password}
 	}
 }
 
