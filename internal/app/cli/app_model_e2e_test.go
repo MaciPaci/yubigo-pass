@@ -250,7 +250,7 @@ func TestAppModel_AddPasswordFlow_Success(t *testing.T) {
 	tm.Quit()
 }
 
-func TestAppModel_AddPasswordFlow_PasswordAlredyExists(t *testing.T) {
+func TestAppModel_AddPasswordFlow_PasswordAlreadyExists(t *testing.T) {
 	db, err := test.SetupTestDB()
 	require.NoError(t, err, "Failed setup")
 	defer test.TeardownTestDB(db)

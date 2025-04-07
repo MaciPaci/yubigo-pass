@@ -66,7 +66,7 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.lastError = nil
 		switch msg.State {
 		case common.StateGoToCreateUser:
-			m.activeModel = NewCreateUserModel(m.container.Store)
+			m.activeModel = NewCreateUserModel()
 			return m, m.activeModel.Init()
 		case common.StateGoToAddPassword:
 			if !m.session.IsAuthenticated() {
@@ -74,7 +74,7 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.activeModel = NewLoginModel(m.container.Store)
 				return m, tea.Batch(m.activeModel.Init(), tea.Batch(cmds...))
 			}
-			m.activeModel = NewAddPasswordModel(m.container.Store, m.session)
+			m.activeModel = NewAddPasswordModel(m.session)
 			return m, m.activeModel.Init()
 
 		case common.StateGoBack:

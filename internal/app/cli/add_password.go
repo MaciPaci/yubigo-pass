@@ -1,13 +1,11 @@
 package cli
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 	"yubigo-pass/internal/app/common"
 	"yubigo-pass/internal/app/model"
 	"yubigo-pass/internal/app/utils"
-	"yubigo-pass/internal/database"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -35,7 +33,6 @@ type AddPasswordModel struct {
 	passwordStrength int
 	passwordVisible  bool
 
-	store   database.StoreExecutor
 	session utils.Session
 }
 
@@ -50,11 +47,10 @@ func ExtractPasswordDataFromModel(m AddPasswordModel) model.Password {
 }
 
 // NewAddPasswordModel creates a new instance of the AddPasswordModel.
-func NewAddPasswordModel(store database.StoreExecutor, session utils.Session) AddPasswordModel {
+func NewAddPasswordModel(session utils.Session) AddPasswordModel {
 	m := AddPasswordModel{
 		state:            addPasswordInputsFocused,
 		inputs:           make([]textinput.Model, 4),
-		store:            store,
 		session:          session,
 		passwordStrength: 0,
 		passwordVisible:  false,
@@ -188,22 +184,8 @@ func (m AddPasswordModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.showErr = true
 					return m, nil
 				}
-
-				_, checkErr := m.store.GetPassword(m.session.GetUserID(), m.inputs[0].Value(), m.inputs[1].Value())
-				if checkErr == nil {
-					m.err = model.NewPasswordAlreadyExistsError(m.session.GetUserID(), m.inputs[0].Value(), m.inputs[1].Value())
-					m.showErr = true
-					return m, nil
-				} else if !errors.As(checkErr, &model.PasswordNotFoundError{}) {
-					m.err = fmt.Errorf("failed to check existing password: %w", checkErr)
-					m.showErr = true
-					return m, nil
-				}
-
 				passwordData := ExtractPasswordDataFromModel(m)
-
 				return m, common.AddPasswordCmd(passwordData)
-
 			} else if m.state == addPasswordInputsFocused && m.focusIndex < len(m.inputs) {
 				m.focusIndex++
 				cmds = append(cmds, m.updateFocus())
@@ -257,7 +239,7 @@ func (m AddPasswordModel) View() string {
 
 	if m.err != nil && m.showErr {
 		errorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(colorValidateErr))
-		fmt.Fprintf(&b, "\n\n%s %s", validateErrPrefix, errorStyle.Render(m.err.Error()))
+		fmt.Fprintf(&b, "\n%s %s\n", validateErrPrefix, errorStyle.Render(m.err.Error()))
 	}
 
 	help := blurredStyle.Render("\n\n(Tab/Shift+Tab: Navigate, ↑/↓: Focus, Enter: Select/Add)\n")

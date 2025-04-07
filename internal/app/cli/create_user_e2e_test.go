@@ -4,11 +4,7 @@ package cli
 
 import (
 	"testing"
-	"yubigo-pass/internal/app/model"
-	"yubigo-pass/internal/database"
 	"yubigo-pass/test"
-
-	"github.com/google/uuid"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/exp/teatest"
@@ -36,7 +32,7 @@ func TestShouldQuitCreateUserAction(t *testing.T) {
 			testCase.name, func(t *testing.T) {
 				tm := teatest.NewTestModel(
 					t,
-					NewCreateUserModel(test.NewStoreExecutorMock()),
+					NewCreateUserModel(),
 					teatest.WithInitialTermSize(300, 100),
 				)
 				test.PressKey(tm, testCase.key)
@@ -58,10 +54,9 @@ func TestShouldCreateUser(t *testing.T) {
 	require.NoError(t, err, "Failed to set up test database")
 	defer test.TeardownTestDB(db)
 
-	store := database.NewStore(db)
 	tm := teatest.NewTestModel(
 		t,
-		NewCreateUserModel(store),
+		NewCreateUserModel(),
 		teatest.WithInitialTermSize(300, 100),
 	)
 
@@ -94,10 +89,9 @@ func TestShouldShowPasswordDuringCreateUser(t *testing.T) {
 	require.NoError(t, err, "Failed to set up test database")
 	defer test.TeardownTestDB(db)
 
-	store := database.NewStore(db)
 	tm := teatest.NewTestModel(
 		t,
-		NewCreateUserModel(store),
+		NewCreateUserModel(),
 		teatest.WithInitialTermSize(300, 100),
 	)
 
@@ -132,10 +126,9 @@ func TestShouldShowAndHidePasswordDuringCreateUser(t *testing.T) {
 	require.NoError(t, err, "Failed to set up test database")
 	defer test.TeardownTestDB(db)
 
-	store := database.NewStore(db)
 	tm := teatest.NewTestModel(
 		t,
-		NewCreateUserModel(store),
+		NewCreateUserModel(),
 		teatest.WithInitialTermSize(300, 100),
 	)
 
@@ -169,7 +162,7 @@ func TestShouldNotCreateUserWithEmptyUsername(t *testing.T) {
 	// given
 	tm := teatest.NewTestModel(
 		t,
-		NewCreateUserModel(test.NewStoreExecutorMock()),
+		NewCreateUserModel(),
 		teatest.WithInitialTermSize(300, 100),
 	)
 	examplePassword := test.RandomString()
@@ -195,7 +188,7 @@ func TestShouldNotCreateUserWithEmptyPassword(t *testing.T) {
 	// given
 	tm := teatest.NewTestModel(
 		t,
-		NewCreateUserModel(test.NewStoreExecutorMock()),
+		NewCreateUserModel(),
 		teatest.WithInitialTermSize(300, 100),
 	)
 	exampleUsername := test.RandomString()
@@ -220,7 +213,7 @@ func TestShouldNotCreateUserWithBothInputFieldsEmpty(t *testing.T) {
 	// given
 	tm := teatest.NewTestModel(
 		t,
-		NewCreateUserModel(test.NewStoreExecutorMock()),
+		NewCreateUserModel(),
 		teatest.WithInitialTermSize(300, 100),
 	)
 
@@ -240,49 +233,11 @@ func TestShouldNotCreateUserWithBothInputFieldsEmpty(t *testing.T) {
 	assert.Errorf(t, m.err, expectedErrorMsg)
 }
 
-func TestShouldNotCreateUserIfUsernameAlreadyExists(t *testing.T) {
-	// given
-	db, err := test.SetupTestDB()
-	require.NoError(t, err, "Failed to set up test database")
-	defer test.TeardownTestDB(db)
-
-	store := database.NewStore(db)
-
-	tm := teatest.NewTestModel(
-		t,
-		NewCreateUserModel(store), // Use real store
-		teatest.WithInitialTermSize(300, 100),
-	)
-
-	existingUsername := test.RandomString()
-	examplePassword := test.RandomString()
-
-	// and username already exists in database
-	test.InsertIntoUsers(t, db, model.NewUser(uuid.New().String(), existingUsername, test.RandomString(), test.RandomString()))
-
-	// when
-	test.TypeString(tm, existingUsername)
-	test.PressKey(tm, tea.KeyDown)
-	test.TypeString(tm, examplePassword)
-	test.PressKey(tm, tea.KeyDown)
-	test.PressKey(tm, tea.KeyEnter)
-
-	// then
-	expectedErrorMsg := "ERROR: username '" + existingUsername + "' already exists"
-
-	err = tm.Quit()
-	require.NoError(t, err, "Failed to quit the model")
-	fm := tm.FinalModel(t)
-	m, ok := fm.(CreateUserModel)
-	require.Truef(t, ok, "final model has wrong type: %T", fm)
-	assert.Errorf(t, m.err, expectedErrorMsg)
-}
-
 func TestShouldAbortCreateUserActionUsingBack(t *testing.T) {
 	// given
 	tm := teatest.NewTestModel(
 		t,
-		NewCreateUserModel(test.NewStoreExecutorMock()),
+		NewCreateUserModel(),
 		teatest.WithInitialTermSize(300, 100),
 	)
 

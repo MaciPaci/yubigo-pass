@@ -1,12 +1,9 @@
 package cli
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 	"yubigo-pass/internal/app/common"
-	"yubigo-pass/internal/app/model"
-	"yubigo-pass/internal/database"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -30,8 +27,6 @@ type CreateUserModel struct {
 	showErr         bool
 	err             error
 	passwordVisible bool
-
-	store database.StoreExecutor
 }
 
 // ExtractUserDataFromModel retrieves the username and password from the model's inputs.
@@ -42,11 +37,10 @@ func ExtractUserDataFromModel(m CreateUserModel) (string, string) {
 }
 
 // NewCreateUserModel creates a new instance of the CreateUserModel.
-func NewCreateUserModel(store database.StoreExecutor) CreateUserModel {
+func NewCreateUserModel() CreateUserModel {
 	m := CreateUserModel{
 		state:           createUserInputsFocused,
 		inputs:          make([]textinput.Model, 2),
-		store:           store,
 		passwordVisible: false,
 	}
 
@@ -149,17 +143,6 @@ func (m CreateUserModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				validationErr := validateCreateUserModelInputs(m.inputs)
 				if validationErr != nil {
 					m.err = validationErr
-					m.showErr = true
-					return m, nil
-				}
-
-				_, checkErr := m.store.GetUser(m.inputs[0].Value())
-				if checkErr == nil {
-					m.err = model.NewUserAlreadyExistsError(m.inputs[0].Value())
-					m.showErr = true
-					return m, nil
-				} else if !errors.As(checkErr, &model.UserNotFoundError{}) {
-					m.err = fmt.Errorf("failed to check username: %w", checkErr)
 					m.showErr = true
 					return m, nil
 				}
