@@ -382,11 +382,61 @@ func TestShouldGenerateShowAndAddPassword(t *testing.T) {
 
 	// when
 	test.TypeString(tm, exampleTitle)
+	test.PressKey(tm, tea.KeyEnter)
+	test.TypeString(tm, exampleUsername)
+	test.PressKey(tm, tea.KeyDown)
+	test.PressKey(tm, tea.KeyCtrlG) // Generate password
+	test.PressKey(tm, tea.KeyCtrlS) // Show password
+	test.PressKey(tm, tea.KeyDown)
+	test.TypeString(tm, exampleUrl)
+	test.PressKey(tm, tea.KeyDown)  // Focus Add button
+	test.PressKey(tm, tea.KeyEnter) // Submit
+
+	// then
+	err = tm.Quit()
+	require.NoError(t, err, "Failed to quit the model")
+	fm := tm.FinalModel(t)
+	m, ok := fm.(AddPasswordModel)
+	require.Truef(t, ok, "final model has wrong type: %T", fm)
+
+	result := ExtractPasswordDataFromModel(m)
+	assert.Equal(t, exampleUsername, result.Username)
+	assert.Equal(t, exampleTitle, result.Title)
+	assert.NotEmpty(t, result.Password)
+	assert.Equal(t, exampleUrl, result.Url)
+	assert.True(t, m.passwordVisible)
+
+	assert.NoError(t, m.err, "Error should be nil on quit")
+}
+
+func TestShouldGenerateShowThenHideAndAddPassword(t *testing.T) {
+	// given
+	db, err := test.SetupTestDB()
+	require.NoError(t, err, "Failed to set up test database")
+	defer test.TeardownTestDB(db)
+
+	userID := uuid.New().String()
+	session := utils.NewSession(userID, test.RandomString(), test.RandomString())
+	store := database.NewStore(db)
+
+	tm := teatest.NewTestModel(
+		t,
+		NewAddPasswordModel(store, session),
+		teatest.WithInitialTermSize(300, 100),
+	)
+
+	exampleTitle := test.RandomString()
+	exampleUsername := test.RandomString()
+	exampleUrl := test.RandomString()
+
+	// when
+	test.TypeString(tm, exampleTitle)
 	test.PressKey(tm, tea.KeyDown)
 	test.TypeString(tm, exampleUsername)
 	test.PressKey(tm, tea.KeyDown)
 	test.PressKey(tm, tea.KeyCtrlG) // Generate password
 	test.PressKey(tm, tea.KeyCtrlS) // Show password
+	test.PressKey(tm, tea.KeyCtrlS) // Hide password
 	test.PressKey(tm, tea.KeyDown)
 	test.TypeString(tm, exampleUrl)
 	test.PressKey(tm, tea.KeyDown)  // Focus Add button

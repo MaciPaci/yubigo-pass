@@ -68,14 +68,6 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case common.StateGoToCreateUser:
 			m.activeModel = NewCreateUserModel(m.container.Store)
 			return m, m.activeModel.Init()
-		case common.StateGoToMainMenu:
-			if !m.session.IsAuthenticated() {
-				cmds = append(cmds, common.ErrCmd(errors.New("cannot enter main menu: not authenticated")))
-				m.activeModel = NewLoginModel(m.container.Store)
-				return m, tea.Batch(m.activeModel.Init(), tea.Batch(cmds...))
-			}
-			m.activeModel = NewMainMenuModel()
-			return m, m.activeModel.Init()
 		case common.StateGoToAddPassword:
 			if !m.session.IsAuthenticated() {
 				cmds = append(cmds, common.ErrCmd(errors.New("cannot add password: not authenticated")))

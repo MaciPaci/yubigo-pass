@@ -73,7 +73,6 @@ func TestAddPasswordCmd(t *testing.T) {
 // TestChangeStateCmd verifies that ChangeStateCmd creates the correct StateMsg.
 func TestChangeStateCmd(t *testing.T) {
 	testCases := []MsgState{
-		StateGoToMainMenu,
 		StateLogout,
 		StateQuit,
 		StateGoBack,
