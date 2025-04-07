@@ -81,8 +81,8 @@ func GeneratePassword(length int, includeLower, includeUpper, includeDigits, inc
 }
 
 func addMissingCharacters(password []byte, length int, characterSet string) []byte {
-	idx, _ := rand.Int(rand.Reader, big.NewInt(int64(length)))
-	charIdx, _ := rand.Int(rand.Reader, big.NewInt(int64(len(characterSet))))
+	idx, _ := rand.Int(rand.Reader, big.NewInt(int64(length)-1))
+	charIdx, _ := rand.Int(rand.Reader, big.NewInt(int64(len(characterSet))-1))
 	password[idx.Int64()] = lowercaseChars[charIdx.Int64()]
 	return password
 }
