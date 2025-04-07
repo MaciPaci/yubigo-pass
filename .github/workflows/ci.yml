@@ -103,7 +103,7 @@ jobs:
           go install github.com/mattn/goveralls@latest
           $HOME/go/bin/gocovmerge coverage_unit.out coverage_integration.out coverage_e2e.out > coverage_combined.out
           go tool cover -func coverage_combined.out
-          goveralls -coverprofile=coverage_combined.out -service=github
+          goveralls -coverprofile=coverage_combined.out -service=github -ignore=./test/...
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
