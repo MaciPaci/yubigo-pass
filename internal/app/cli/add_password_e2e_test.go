@@ -454,7 +454,7 @@ func TestShouldGenerateShowThenHideAndAddPassword(t *testing.T) {
 	assert.Equal(t, exampleTitle, result.Title)
 	assert.NotEmpty(t, result.Password)
 	assert.Equal(t, exampleUrl, result.Url)
-	assert.True(t, m.passwordVisible)
+	assert.False(t, m.passwordVisible)
 
 	assert.NoError(t, m.err, "Error should be nil on quit")
 }
