@@ -88,6 +88,83 @@ func TestShouldCreateUser(t *testing.T) {
 	assert.NoError(t, m.err, "Error should be nil on successful submission")
 }
 
+func TestShouldShowPasswordDuringCreateUser(t *testing.T) {
+	// given
+	db, err := test.SetupTestDB()
+	require.NoError(t, err, "Failed to set up test database")
+	defer test.TeardownTestDB(db)
+
+	store := database.NewStore(db)
+	tm := teatest.NewTestModel(
+		t,
+		NewCreateUserModel(store),
+		teatest.WithInitialTermSize(300, 100),
+	)
+
+	// expected
+	exampleUsername := test.RandomString()
+	examplePassword := test.RandomString()
+
+	// when
+	test.TypeString(tm, exampleUsername)
+	test.PressKey(tm, tea.KeyDown) // -> Password
+	test.TypeString(tm, examplePassword)
+	test.PressKey(tm, tea.KeyCtrlS) // Show password
+	test.PressKey(tm, tea.KeyDown)  // -> Submit Button
+	test.PressKey(tm, tea.KeyEnter) // Submit (sends CreateUserCmd)
+
+	// then
+	err = tm.Quit()
+	require.NoError(t, err, "Failed to quit the model")
+	fm := tm.FinalModel(t)
+	m, ok := fm.(CreateUserModel)
+	require.Truef(t, ok, "final model has wrong type: %T", fm)
+
+	// assert state before finishing
+	assert.Equal(t, exampleUsername, m.inputs[0].Value())
+	assert.True(t, m.passwordVisible, "Password should be visible")
+	assert.NoError(t, m.err, "Error should be nil on successful submission")
+}
+
+func TestShouldShowAndHidePasswordDuringCreateUser(t *testing.T) {
+	// given
+	db, err := test.SetupTestDB()
+	require.NoError(t, err, "Failed to set up test database")
+	defer test.TeardownTestDB(db)
+
+	store := database.NewStore(db)
+	tm := teatest.NewTestModel(
+		t,
+		NewCreateUserModel(store),
+		teatest.WithInitialTermSize(300, 100),
+	)
+
+	// expected
+	exampleUsername := test.RandomString()
+	examplePassword := test.RandomString()
+
+	// when
+	test.TypeString(tm, exampleUsername)
+	test.PressKey(tm, tea.KeyDown) // -> Password
+	test.TypeString(tm, examplePassword)
+	test.PressKey(tm, tea.KeyCtrlS) // Show password
+	test.PressKey(tm, tea.KeyCtrlS) // Hide password
+	test.PressKey(tm, tea.KeyDown)  // -> Submit Button
+	test.PressKey(tm, tea.KeyEnter) // Submit (sends CreateUserCmd)
+
+	// then
+	err = tm.Quit()
+	require.NoError(t, err, "Failed to quit the model")
+	fm := tm.FinalModel(t)
+	m, ok := fm.(CreateUserModel)
+	require.Truef(t, ok, "final model has wrong type: %T", fm)
+
+	// assert state before finishing
+	assert.Equal(t, exampleUsername, m.inputs[0].Value())
+	assert.False(t, m.passwordVisible, "Password should be visible")
+	assert.NoError(t, m.err, "Error should be nil on successful submission")
+}
+
 func TestShouldNotCreateUserWithEmptyUsername(t *testing.T) {
 	// given
 	tm := teatest.NewTestModel(
@@ -98,7 +175,7 @@ func TestShouldNotCreateUserWithEmptyUsername(t *testing.T) {
 	examplePassword := test.RandomString()
 
 	// when
-	test.PressKey(tm, tea.KeyDown) // -> Password
+	test.PressKey(tm, tea.KeyEnter) // -> Password
 	test.TypeString(tm, examplePassword)
 	test.PressKey(tm, tea.KeyDown)  // -> Submit Button
 	test.PressKey(tm, tea.KeyEnter) // Submit
@@ -125,8 +202,7 @@ func TestShouldNotCreateUserWithEmptyPassword(t *testing.T) {
 
 	// when
 	test.TypeString(tm, exampleUsername)
-	test.PressKey(tm, tea.KeyDown)  // -> Password (empty)
-	test.PressKey(tm, tea.KeyDown)  // -> Submit Button
+	test.PressKey(tm, tea.KeyUp)    // -> Submit Button
 	test.PressKey(tm, tea.KeyEnter) // Submit
 
 	// then
@@ -211,6 +287,8 @@ func TestShouldAbortCreateUserActionUsingBack(t *testing.T) {
 	)
 
 	// when
+	test.PressKey(tm, tea.KeyTab)   // -> Back button
+	test.PressKey(tm, tea.KeyTab)   // -> Username
 	test.PressKey(tm, tea.KeyTab)   // -> Back button
 	test.PressKey(tm, tea.KeyEnter) // Activate Back (sends StateGoBack)
 

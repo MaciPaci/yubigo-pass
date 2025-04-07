@@ -102,16 +102,6 @@ func (m CreateUserModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case tea.KeyRunes, tea.KeySpace, tea.KeyBackspace:
 				m.showErr = false
 				m.err = nil
-			case tea.KeyCtrlS:
-				if m.focusIndex == 2 {
-					m.passwordVisible = !m.passwordVisible
-					if m.passwordVisible {
-						m.inputs[2].EchoMode = textinput.EchoNormal
-					} else {
-						m.inputs[2].EchoMode = textinput.EchoPassword
-					}
-					return m, nil
-				}
 			}
 		}
 
