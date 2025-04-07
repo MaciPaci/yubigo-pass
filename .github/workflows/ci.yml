@@ -57,7 +57,7 @@ jobs:
       - name: Test:unit
         run: |
           set -euo pipefail
-          go test -json -v ./... -coverprofile coverage_unit.out -covermode count -tags=unit 2>&1 | tee /tmp/gotest_unit.log | gotestfmt
+          go test -json -v ./... -coverprofile coverage_unit.out -covermode count -coverpkg=./internal/... -tags=unit 2>&1 | tee /tmp/gotest_unit.log | gotestfmt
 
       - name: Upload log:unit
         uses: actions/upload-artifact@v4
@@ -72,7 +72,7 @@ jobs:
         shell: 'script -q -e -c "bash {0}"'
         run: |
           set -euo pipefail
-          go test -json -v ./... -coverprofile coverage_integration.out -covermode count -tags=integration 2>&1 | tee /tmp/gotest_integration.log | gotestfmt
+          go test -json -v ./... -coverprofile coverage_integration.out -covermode count -coverpkg=./internal/...  -tags=integration 2>&1 | tee /tmp/gotest_integration.log | gotestfmt
 
       - name: Upload log:integration
         uses: actions/upload-artifact@v4
@@ -85,7 +85,7 @@ jobs:
       - name: Test:e2e
         run: |
           set -euo pipefail
-          go test -json -v ./... -coverprofile coverage_e2e.out -covermode count -tags=e2e 2>&1 | tee /tmp/gotest_e2e.log | gotestfmt
+          go test -json -v ./... -coverprofile coverage_e2e.out -covermode count -coverpkg=./internal/... -tags=e2e 2>&1 | tee /tmp/gotest_e2e.log | gotestfmt
 
       - name: Upload log:e2e
         uses: actions/upload-artifact@v4
@@ -103,7 +103,7 @@ jobs:
           go install github.com/mattn/goveralls@latest
           $HOME/go/bin/gocovmerge coverage_unit.out coverage_integration.out coverage_e2e.out > coverage_combined.out
           go tool cover -func coverage_combined.out
-          goveralls -coverprofile=coverage_combined.out -service=github -ignore=./test/...
+          goveralls -coverprofile=coverage_combined.out -service=github
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
