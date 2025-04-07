@@ -235,49 +235,6 @@ func containsAny(s, chars string) bool {
 	return strings.ContainsAny(s, chars)
 }
 
-// --- Test GetStrengthStyle ---
-
-func TestGetStrengthStyle(t *testing.T) {
-	testCases := []struct {
-		name          string
-		score         int
-		expectedColor lipgloss.TerminalColor
-	}{
-		{name: "Score 0 Very Weak", score: 0, expectedColor: lipgloss.Color("9")},
-		{name: "Score 1 Weak", score: 1, expectedColor: lipgloss.Color("208")},
-		{name: "Score 2 Fair", score: 2, expectedColor: lipgloss.Color("11")},
-		{name: "Score 3 Good", score: 3, expectedColor: lipgloss.Color("10")},
-		{name: "Score 4 Strong", score: 4, expectedColor: lipgloss.Color("82")},
-		{name: "Score -1 Below Range", score: -1, expectedColor: lipgloss.NoColor{}},
-		{name: "Score 5 Above Range", score: 5, expectedColor: lipgloss.NoColor{}},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			// given
-			score := tc.score
-
-			// then
-			var actualColor lipgloss.TerminalColor = lipgloss.NoColor{}
-			switch score {
-			case 0:
-				actualColor = lipgloss.Color("9")
-			case 1:
-				actualColor = lipgloss.Color("208")
-			case 2:
-				actualColor = lipgloss.Color("11")
-			case 3:
-				actualColor = lipgloss.Color("10")
-			case 4:
-				actualColor = lipgloss.Color("82")
-			}
-			assert.Equal(t, tc.expectedColor, actualColor)
-		})
-	}
-}
-
-// --- Test GetStrengthText ---
-
 func TestGetStrengthText(t *testing.T) {
 	testCases := []struct {
 		name         string
@@ -303,6 +260,55 @@ func TestGetStrengthText(t *testing.T) {
 
 			// then
 			assert.Equal(t, tc.expectedText, text)
+		})
+	}
+}
+
+func TestGetStrengthStyle(t *testing.T) {
+	testCases := []struct {
+		name          string
+		score         int
+		expectedStyle lipgloss.Style
+	}{
+		{name: "Score 0", score: 0, expectedStyle: lipgloss.NewStyle().Foreground(lipgloss.Color("9"))},
+		{name: "Score 1", score: 1, expectedStyle: lipgloss.NewStyle().Foreground(lipgloss.Color("208"))},
+		{name: "Score 2", score: 2, expectedStyle: lipgloss.NewStyle().Foreground(lipgloss.Color("11"))},
+		{name: "Score 3", score: 3, expectedStyle: lipgloss.NewStyle().Foreground(lipgloss.Color("10"))},
+		{name: "Score 4", score: 4, expectedStyle: lipgloss.NewStyle().Foreground(lipgloss.Color("82"))},
+		{name: "Score -1 Below Range", score: -1, expectedStyle: lipgloss.NewStyle()},
+		{name: "Score 5 Above Range", score: 5, expectedStyle: lipgloss.NewStyle()},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// given
+			score := tc.score
+
+			// when
+			style := GetStrengthStyle(score)
+
+			// then
+			assert.Equal(t, tc.expectedStyle, style)
+		})
+	}
+}
+
+func TestShouldAddMissingCharacters(t *testing.T) {
+	testCases := []struct {
+		name         string
+		password     string
+		characterSet string
+	}{
+		{name: "Lowercase", password: "aaaaa", characterSet: lowercaseChars},
+		{name: "Uppercase", password: "AAAAA", characterSet: uppercaseChars},
+		{name: "Digits", password: "11111", characterSet: digitChars},
+		{name: "Symbols", password: "!!!!!", characterSet: symbolChars},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			changedPassword := addMissingCharacters([]byte(tc.password), len(tc.password), tc.characterSet)
+
+			assert.NotEqual(t, tc.password, changedPassword, "Password slice should have been modified")
 		})
 	}
 }
