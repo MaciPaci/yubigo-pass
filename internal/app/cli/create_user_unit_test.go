@@ -4,7 +4,6 @@ package cli
 
 import (
 	"errors"
-	"fmt"
 	"testing"
 	"yubigo-pass/test"
 
@@ -19,7 +18,7 @@ func TestCreateUserShouldValidateCorrectInput(t *testing.T) {
 	correctInput[1].SetValue(test.RandomString())
 
 	// when
-	err := validateCreateUserModelInputs(correctInput, nil)
+	err := validateCreateUserModelInputs(correctInput)
 
 	// then
 	assert.Nil(t, err)
@@ -32,10 +31,10 @@ func TestCreateUserShouldNotValidateIncorrectInputWithEmptyPassword(t *testing.T
 	incorrectInput[1].SetValue("")
 
 	// expected
-	expectedError := errors.New("password cannot be empty")
+	expectedError := errors.New("username and password cannot be empty")
 
 	// when
-	err := validateCreateUserModelInputs(incorrectInput, nil)
+	err := validateCreateUserModelInputs(incorrectInput)
 
 	// then
 	assert.EqualError(t, err, expectedError.Error())
@@ -48,10 +47,10 @@ func TestCreateUserShouldNotValidateIncorrectInputWithEmptyUsername(t *testing.T
 	incorrectInput[1].SetValue(test.RandomString())
 
 	// expected
-	expectedError := errors.New("username cannot be empty")
+	expectedError := errors.New("username and password cannot be empty")
 
 	// when
-	err := validateCreateUserModelInputs(incorrectInput, nil)
+	err := validateCreateUserModelInputs(incorrectInput)
 
 	// then
 	assert.EqualError(t, err, expectedError.Error())
@@ -67,22 +66,8 @@ func TestCreateUserShouldNotValidateIncorrectInputWithEmptyBothFields(t *testing
 	expectedError := errors.New("username and password cannot be empty")
 
 	// when
-	err := validateCreateUserModelInputs(incorrectInput, nil)
+	err := validateCreateUserModelInputs(incorrectInput)
 
 	// then
 	assert.EqualError(t, err, expectedError.Error())
-}
-
-func TestCreateUserShouldReturnErrorIfErrorWasPassed(t *testing.T) {
-	// given
-	var correctInput = make([]textinput.Model, 2)
-	correctInput[0].SetValue(test.RandomString())
-	correctInput[1].SetValue(test.RandomString())
-	passedError := fmt.Errorf("example error")
-
-	// when
-	err := validateCreateUserModelInputs(correctInput, passedError)
-
-	// then
-	assert.EqualError(t, err, passedError.Error())
 }
