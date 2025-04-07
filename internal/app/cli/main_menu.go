@@ -18,7 +18,7 @@ const listHeight = 14
 const (
 	GetPasswordItem  = "Get password"
 	ViewPasswordItem = "View your passwords"
-	AddPasswordItem  = "Add a new password"
+	AddPasswordItem  = "Add a new password" // #nosec G101
 	LogoutItem       = "Logout"
 	QuitItem         = "Quit"
 )

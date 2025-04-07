@@ -37,7 +37,7 @@ func main() {
 
 // setupLogging configures the logrus logger.
 func setupLogging() {
-	logFile, err := os.OpenFile("yubigo-pass.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	logFile, err := os.OpenFile("yubigo-pass.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644) // #nosec G302
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: Failed to open log file: %v. Logging to stderr.\n", err)
 		logrus.SetOutput(os.Stderr)
