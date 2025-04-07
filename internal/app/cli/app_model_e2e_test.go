@@ -105,6 +105,44 @@ func TestAppModel_CreateUserFlow_Success(t *testing.T) {
 	tm.Quit()
 }
 
+func TestAppModel_CreateUserFlow_UserAlreadyExists(t *testing.T) {
+	db, err := test.SetupTestDB()
+	require.NoError(t, err, "Failed setup")
+	defer test.TeardownTestDB(db)
+	store := database.NewStore(db)
+	container := services.Container{Store: store}
+
+	tm := teatest.NewTestModel(t, NewAppModel(container), teatest.WithInitialTermSize(300, 100))
+
+	teatest.WaitFor(t, tm.Output(), func(bts []byte) bool {
+		return bytes.Contains(bts, []byte("LOGIN"))
+	}, teatest.WithDuration(2*time.Second))
+
+	// Navigate to Create User button
+	test.PressKey(tm, tea.KeyTab)   // -> Create User Btn
+	test.PressKey(tm, tea.KeyEnter) // Activate Create User
+
+	// Wait for Create User screen
+	teatest.WaitFor(t, tm.Output(), func(bts []byte) bool {
+		return bytes.Contains(bts, []byte("CREATE NEW USER")) &&
+			!bytes.Contains(bts, []byte("LOGIN"))
+	}, teatest.WithDuration(2*time.Second))
+
+	newUsername := test.RandomString()
+	newPassword := test.RandomString()
+
+	test.InsertIntoUsers(t, db, model.User{UserID: test.RandomString(), Username: newUsername, Password: newPassword, Salt: test.RandomString()})
+
+	test.TypeString(tm, newUsername)
+	test.PressKey(tm, tea.KeyDown) // -> Password
+	test.TypeString(tm, newPassword)
+	test.PressKey(tm, tea.KeyDown)  // -> Submit Button
+	test.PressKey(tm, tea.KeyEnter) // Submit Create User
+
+	err = tm.Quit()
+	require.NoError(t, err, "Failed to quit the model")
+}
+
 func TestAppModel_CreateUserFlow_GoBack(t *testing.T) {
 	db, err := test.SetupTestDB()
 	require.NoError(t, err, "Failed setup")
@@ -210,6 +248,78 @@ func TestAppModel_AddPasswordFlow_Success(t *testing.T) {
 	assert.NoError(t, dbErr, "Password should exist in database after adding")
 
 	tm.Quit()
+}
+
+func TestAppModel_AddPasswordFlow_PasswordAlredyExists(t *testing.T) {
+	db, err := test.SetupTestDB()
+	require.NoError(t, err, "Failed setup")
+	defer test.TeardownTestDB(db)
+	store := database.NewStore(db)
+	container := services.Container{Store: store}
+
+	// Setup existing user for login
+	existingUsername := test.RandomString()
+	existingPassword := test.RandomString()
+	existingSalt, err := crypto.NewSalt()
+	require.NoError(t, err)
+	userID := uuid.New().String()
+	existingUser := model.User{
+		UserID:   userID,
+		Username: existingUsername,
+		Password: crypto.HashPasswordWithSalt(existingPassword, existingSalt),
+		Salt:     existingSalt,
+	}
+	test.InsertIntoUsers(t, db, existingUser)
+
+	tm := teatest.NewTestModel(t, NewAppModel(container), teatest.WithInitialTermSize(300, 100))
+
+	// Login first
+	teatest.WaitFor(t, tm.Output(), func(bts []byte) bool { return bytes.Contains(bts, []byte("LOGIN")) })
+	test.TypeString(tm, existingUsername)
+	test.PressKey(tm, tea.KeyDown) // -> Password
+	test.TypeString(tm, existingPassword)
+	test.PressKey(tm, tea.KeyDown)  // -> Login Button
+	test.PressKey(tm, tea.KeyEnter) // Submit Login
+
+	// Wait for Main Menu
+	teatest.WaitFor(t, tm.Output(), func(bts []byte) bool { return bytes.Contains(bts, []byte("MAIN MENU")) })
+
+	// Navigate to Add Password and select
+	test.PressKey(tm, tea.KeyDown)  // -> View Passwords
+	test.PressKey(tm, tea.KeyDown)  // -> Add Password
+	test.PressKey(tm, tea.KeyEnter) // Select Add Password
+
+	// Wait for Add Password screen
+	teatest.WaitFor(t, tm.Output(), func(bts []byte) bool {
+		return bytes.Contains(bts, []byte("ADD A NEW PASSWORD")) &&
+			!bytes.Contains(bts, []byte("MAIN MENU"))
+	}, teatest.WithDuration(2*time.Second))
+
+	newTitle := test.RandomString()
+	newPwdUsername := test.RandomString()
+	newPassword := test.RandomString()
+
+	test.InsertIntoPasswords(t, db, model.Password{
+		UserID:   userID,
+		Title:    newTitle,
+		Username: newPwdUsername,
+		Password: newPassword,
+		Url:      "",
+		Nonce:    []byte{},
+	})
+
+	// Fill Add Password form
+	test.TypeString(tm, newTitle)
+	test.PressKey(tm, tea.KeyDown) // -> Username
+	test.TypeString(tm, newPwdUsername)
+	test.PressKey(tm, tea.KeyDown) // -> Password
+	test.TypeString(tm, newPassword)
+	test.PressKey(tm, tea.KeyDown)  // -> URL
+	test.PressKey(tm, tea.KeyDown)  // -> Add Button
+	test.PressKey(tm, tea.KeyEnter) // Submit Add Password
+
+	err = tm.Quit()
+	require.NoError(t, err, "Failed to quit the model")
 }
 
 func TestAppModel_AddPasswordFlow_GoBack(t *testing.T) {
