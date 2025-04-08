@@ -46,7 +46,7 @@ func TestCreateUserCmd(t *testing.T) {
 
 // TestAddPasswordCmd verifies that AddPasswordCmd creates the correct PasswordToAddMsg.
 func TestAddPasswordCmd(t *testing.T) {
-	expectedData := model.Password{
+	passwordData := model.Password{
 		UserID:   "uid",
 		Title:    "Test Title",
 		Username: "pwduser",
@@ -55,14 +55,21 @@ func TestAddPasswordCmd(t *testing.T) {
 		Nonce:    []byte("nonce"),
 	}
 
-	cmd := AddPasswordCmd(expectedData)
+	expectedData := PasswordToAddMsg{
+		Title:    passwordData.Title,
+		Username: passwordData.Username,
+		Password: passwordData.Password,
+		Url:      passwordData.Url,
+	}
+
+	cmd := AddPasswordCmd(passwordData)
 	require.NotNil(t, cmd, "Command should not be nil")
 
 	msg := cmd()
 	resultMsg, ok := msg.(PasswordToAddMsg)
 	require.True(t, ok, "Message should be of type PasswordToAddMsg")
 
-	assert.Equal(t, expectedData, resultMsg.Data)
+	assert.Equal(t, expectedData, resultMsg)
 }
 
 // TestChangeStateCmd verifies that ChangeStateCmd creates the correct StateMsg.

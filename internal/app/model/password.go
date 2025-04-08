@@ -2,6 +2,7 @@ package model
 
 // Password is the model of the password
 type Password struct {
+	ID       string `db:"id"`
 	UserID   string `db:"user_id"`
 	Title    string `db:"title"`
 	Username string `db:"username"`
@@ -11,8 +12,9 @@ type Password struct {
 }
 
 // NewPassword returns new Password instance
-func NewPassword(userID, title, username, password, url string, nonce []byte) Password {
+func NewPassword(id, userID, title, username, password, url string, nonce []byte) Password {
 	return Password{
+		ID:       id,
 		UserID:   userID,
 		Title:    title,
 		Username: username,

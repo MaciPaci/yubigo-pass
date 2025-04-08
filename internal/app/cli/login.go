@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 	"yubigo-pass/internal/app/common"
-	"yubigo-pass/internal/database"
 
 	"github.com/charmbracelet/lipgloss"
 
@@ -35,16 +34,13 @@ type LoginModel struct {
 	inputs     []textinput.Model
 	showErr    bool
 	err        error
-
-	store database.StoreExecutor
 }
 
 // NewLoginModel creates a new instance of the LoginModel.
-func NewLoginModel(store database.StoreExecutor) LoginModel {
+func NewLoginModel() LoginModel {
 	m := LoginModel{
 		state:  loginInputsFocused,
 		inputs: make([]textinput.Model, 2),
-		store:  store,
 	}
 
 	var t textinput.Model
