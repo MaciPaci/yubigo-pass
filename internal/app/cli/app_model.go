@@ -36,7 +36,7 @@ type PasswordListItem struct {
 	ID       string
 	Title    string
 	Username string
-	// Add other non-sensitive fields if needed for display (e.g., URL)
+	Url      string
 }
 
 // NewAppModel creates the initial state of the top-level application model.
@@ -81,6 +81,7 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case common.StateGoToCreateUser:
 			m.activeModel = NewCreateUserModel()
 			return m, m.activeModel.Init()
+
 		case common.StateGoToMainMenu:
 			if !m.session.IsAuthenticated() {
 				m.lastError = errors.New("cannot enter main menu: not authenticated")
@@ -90,6 +91,7 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			m.activeModel = NewMainMenuModel()
 			return m, m.activeModel.Init()
+
 		case common.StateGoToAddPassword:
 			if !m.session.IsAuthenticated() {
 				m.lastError = errors.New("cannot add password: not authenticated")
@@ -143,6 +145,11 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case common.StatePasswordAdded:
 			m.activeModel = NewMainMenuModel()
 			return m, m.activeModel.Init()
+		case common.StatePasswordCopied:
+			var updatedModel tea.Model
+			updatedModel, cmd = m.activeModel.Update(msg)
+			m.activeModel = updatedModel
+			cmds = append(cmds, cmd)
 		}
 
 	case common.LoginMsg:
@@ -207,7 +214,6 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	// Propagate size updates last
 	sizeMsg := tea.WindowSizeMsg{Width: m.width, Height: m.height}
 	if m.activeModel != nil {
 		var updatedModel tea.Model
@@ -338,6 +344,7 @@ func (m AppModel) getPasswordListItems() ([]PasswordListItem, error) {
 			ID:       p.ID,
 			Title:    p.Title,
 			Username: p.Username,
+			Url:      p.Url,
 		})
 	}
 	return listItems, nil

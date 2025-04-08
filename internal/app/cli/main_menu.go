@@ -15,9 +15,8 @@ const listHeight = 14
 
 // Constants defining main menu item labels.
 const (
-	GetPasswordItem  = "Get password"
 	ViewPasswordItem = "View your passwords"
-	AddPasswordItem  = "Add a new password" // #nosec G101 // Keep existing comment
+	AddPasswordItem  = "Add a new password" // #nosec G101
 	LogoutItem       = "Logout"
 	QuitItem         = "Quit"
 )
@@ -70,7 +69,6 @@ type MainMenuModel struct {
 // NewMainMenuModel creates a new instance of the MainMenuModel.
 func NewMainMenuModel() MainMenuModel {
 	items := []list.Item{
-		item(GetPasswordItem),
 		item(ViewPasswordItem),
 		item(AddPasswordItem),
 		item(LogoutItem),
@@ -126,8 +124,6 @@ func (m MainMenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			var nextState common.MsgState
 			choice := string(selectedItem)
 			switch choice {
-			case GetPasswordItem:
-				nextState = common.StateGoToGetPassword
 			case ViewPasswordItem:
 				nextState = common.StateGoToViewPasswords
 			case AddPasswordItem:

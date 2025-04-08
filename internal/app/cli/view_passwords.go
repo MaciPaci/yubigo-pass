@@ -2,119 +2,135 @@ package cli
 
 import (
 	"fmt"
-	"io"
+	// Removed io import
 	"strings"
 	"time"
 	"yubigo-pass/internal/app/common"
 
-	"github.com/charmbracelet/bubbles/list"
+	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
-const viewListHeight = 18
-const statusMessageTimeout = time.Second * 2
+const viewTableHeight = 10
+const revealTimeout = time.Second * 5
+const statusTimeout = time.Second * 2
 
-type passwordListItem PasswordListItem
-
-// FilterValue allows list filtering on Title and Username.
-func (i passwordListItem) FilterValue() string {
-	return i.Title + " " + i.Username
-}
-
-// passwordDelegate handles rendering items in the view passwords list.
-type passwordDelegate struct{}
-
-func (d passwordDelegate) Height() int                             { return 1 }
-func (d passwordDelegate) Spacing() int                            { return 0 }
-func (d passwordDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
-func (d passwordDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
-	i, ok := listItem.(passwordListItem)
-	if !ok {
-		return
-	}
-
-	str := fmt.Sprintf("%s (%s)", i.Title, i.Username)
-
-	fn := itemStyle.Render
-	if index == m.Index() {
-		fn = func(s ...string) string {
-			return selectedItemStyle.Render("> " + strings.Join(s, " "))
-		}
-	}
-
-	fmt.Fprint(w, fn(str))
-}
-
-// Define a message type for clearing the status message after a timeout
 type clearStatusMsg struct{}
 
-// clearStatusCmd returns a command that sends a clearStatusMsg after a delay.
+type hideRevealedPasswordMsg struct{}
+
 func clearStatusCmd() tea.Cmd {
-	return tea.Tick(statusMessageTimeout, func(t time.Time) tea.Msg {
+	return tea.Tick(statusTimeout, func(t time.Time) tea.Msg {
 		return clearStatusMsg{}
 	})
 }
 
-// ViewPasswordsModel is the Bubble Tea model for displaying and interacting with the password list.
-type ViewPasswordsModel struct {
-	list         list.Model
-	statusMsg    string
-	statusStyle  lipgloss.Style
-	clearCmd     tea.Cmd
-	showStatus   bool
-	initialItems []PasswordListItem
+func hideRevealedPasswordCmd() tea.Cmd {
+	return tea.Tick(revealTimeout, func(t time.Time) tea.Msg {
+		return hideRevealedPasswordMsg{}
+	})
 }
 
-// NewViewPasswordsModel creates a new instance of the ViewPasswordsModel.
-// It expects a slice of items containing only identifiers (ID, Title, Username).
+// ViewPasswordsModel is a model for displaying and managing passwords.
+type ViewPasswordsModel struct {
+	table              table.Model
+	statusMsg          string
+	statusStyle        lipgloss.Style
+	showStatus         bool
+	items              []PasswordListItem
+	revealedPasswordID string
+	revealedTimeout    tea.Cmd
+}
+
+// NewViewPasswordsModel creates a new instance using bubbles/table.
 func NewViewPasswordsModel(items []PasswordListItem) ViewPasswordsModel {
-	listItems := make([]list.Item, len(items))
-	for i, item := range items {
-		listItems[i] = passwordListItem(item)
+	columns := []table.Column{
+		{Title: "Title", Width: 20},
+		{Title: "Username", Width: 20},
+		{Title: "Password", Width: 30},
+		{Title: "URL", Width: 30},
 	}
 
-	const defaultWidth = 50
+	rows := make([]table.Row, len(items))
+	for i, item := range items {
+		rows[i] = table.Row{
+			item.Title,
+			item.Username,
+			"********",
+			item.Url,
+		}
+	}
 
-	l := list.New(listItems, passwordDelegate{}, defaultWidth, viewListHeight)
-	l.Title = "VIEW PASSWORDS"
-	l.SetShowStatusBar(true)
-	l.SetFilteringEnabled(true)
-	l.SetShowHelp(true)
-	l.Styles.Title = titleStyle.Copy().MarginBottom(1)
-	l.Styles.PaginationStyle = paginationStyle
-	l.Styles.HelpStyle = helpStyle
-	l.Styles.FilterPrompt = focusedStyle
-	l.Styles.FilterCursor = cursorStyle
+	s := table.DefaultStyles()
+	s.Header = s.Header.
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color("240")).
+		BorderBottom(true).
+		Bold(false)
+	s.Selected = s.Selected.
+		Foreground(lipgloss.Color("229")).
+		Background(lipgloss.Color("57")).
+		Bold(false)
+
+	t := table.New(
+		table.WithColumns(columns),
+		table.WithRows(rows),
+		table.WithFocused(true),
+		table.WithHeight(viewTableHeight),
+		table.WithStyles(s),
+	)
 
 	statusOKStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(colorValidateOk))
 
 	return ViewPasswordsModel{
-		list:         l,
-		statusStyle:  statusOKStyle,
-		initialItems: items,
+		table:              t,
+		items:              items,
+		revealedPasswordID: "",
+		statusStyle:        statusOKStyle,
 	}
 }
 
 // Init initializes the ViewPasswordsModel.
 func (m ViewPasswordsModel) Init() tea.Cmd {
+	m.statusMsg = ""
+	m.showStatus = false
+	m.revealedPasswordID = ""
+	rows := m.table.Rows()
+	for i := range rows {
+		rows[i][2] = "********"
+	}
+	m.table.SetRows(rows)
 	return nil
 }
 
-// Update handles messages and input for the view passwords screen.
+// Update handles messages and input for the view passwords table.
 func (m ViewPasswordsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		h, v := listDocStyle.GetFrameSize()
-		m.list.SetSize(msg.Width-h, msg.Height-v-2)
+		m.table.SetWidth(msg.Width - 4)
+		m.table.SetHeight(msg.Height - 10)
 		return m, nil
 
 	case clearStatusMsg:
 		m.statusMsg = ""
 		m.showStatus = false
-		m.clearCmd = nil
+		return m, nil
+
+	case hideRevealedPasswordMsg:
+		if m.revealedPasswordID != "" {
+			rowIndex := m.findRowIndexByID(m.revealedPasswordID)
+			if rowIndex != -1 {
+				rows := m.table.Rows()
+				rows[rowIndex][2] = "********"
+				m.table.SetRows(rows)
+			}
+			m.revealedPasswordID = ""
+			m.revealedTimeout = nil
+		}
 		return m, nil
 
 	case common.StateMsg:
@@ -122,62 +138,107 @@ func (m ViewPasswordsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.statusMsg = "Password copied to clipboard!"
 			m.statusStyle = lipgloss.NewStyle().Foreground(lipgloss.Color(colorValidateOk))
 			m.showStatus = true
-			m.clearCmd = clearStatusCmd()
-			return m, m.clearCmd
+			cmds = append(cmds, clearStatusCmd())
 		}
 
 	case common.ErrorMsg:
 		m.statusMsg = fmt.Sprintf("Error: %v", msg.Err)
 		m.statusStyle = lipgloss.NewStyle().Foreground(lipgloss.Color(colorValidateErr))
 		m.showStatus = true
-		m.clearCmd = clearStatusCmd()
-		return m, m.clearCmd
+		cmds = append(cmds, clearStatusCmd())
 
-	case tea.KeyMsg:
-		if m.list.FilterState() == list.Filtering {
-			break
+	case common.PasswordDecryptedMsg:
+		rowIndex := m.findRowIndexByID(msg.PasswordID)
+		if rowIndex != -1 {
+			rows := m.table.Rows()
+			if m.revealedPasswordID != "" && m.revealedPasswordID != msg.PasswordID {
+				oldRowIndex := m.findRowIndexByID(m.revealedPasswordID)
+				if oldRowIndex != -1 {
+					rows[oldRowIndex][2] = "********"
+				}
+			}
+			rows[rowIndex][2] = msg.Plaintext
+			m.table.SetRows(rows)
+			m.revealedPasswordID = msg.PasswordID
+			m.revealedTimeout = hideRevealedPasswordCmd()
+			cmds = append(cmds, m.revealedTimeout)
 		}
 
-		switch keypress := msg.String(); keypress {
+	case tea.KeyMsg:
+		switch msg.String() {
 		case "b", "q", "esc":
+			if m.revealedPasswordID != "" {
+				rowIndex := m.findRowIndexByID(m.revealedPasswordID)
+				if rowIndex != -1 {
+					rows := m.table.Rows()
+					rows[rowIndex][2] = "********"
+					m.table.SetRows(rows)
+				}
+				m.revealedPasswordID = ""
+			}
 			return m, common.ChangeStateCmd(common.StateGoBack)
 
 		case "enter":
-			selectedItem, ok := m.list.SelectedItem().(passwordListItem)
-			if !ok {
-				m.statusMsg = "Error: Could not get selected item."
-				m.statusStyle = lipgloss.NewStyle().Foreground(lipgloss.Color(colorValidateErr))
-				m.showStatus = true
-				m.clearCmd = clearStatusCmd()
-				return m, m.clearCmd
+			if len(m.items) > 0 && m.table.Cursor() < len(m.items) {
+				selectedItem := m.items[m.table.Cursor()]
+				return m, common.RequestDecryptAndCopyPasswordCmd(selectedItem.ID)
 			}
-			return m, common.RequestDecryptAndCopyPasswordCmd(selectedItem.ID)
+
+		case "ctrl+s":
+			if len(m.items) > 0 && m.table.Cursor() < len(m.items) {
+				cursor := m.table.Cursor()
+				selectedItem := m.items[cursor]
+
+				if m.revealedPasswordID == selectedItem.ID {
+					rows := m.table.Rows()
+					rows[cursor][2] = "********"
+					m.table.SetRows(rows)
+					m.revealedPasswordID = ""
+					m.revealedTimeout = nil
+				} else {
+					return m, common.RequestDecryptPasswordCmd(selectedItem.ID)
+				}
+			}
 		}
 	}
 
-	var cmd tea.Cmd
-	m.list, cmd = m.list.Update(msg)
+	m.table, cmd = m.table.Update(msg)
 	cmds = append(cmds, cmd)
 
 	return m, tea.Batch(cmds...)
 }
 
-// View renders the view passwords UI.
+// View renders the view passwords table UI.
 func (m ViewPasswordsModel) View() string {
 	var builder strings.Builder
 
-	listRender := listDocStyle.Render(m.list.View())
-	builder.WriteString(listRender)
+	builder.WriteString(tableBaseStyle.Render(m.table.View()))
 
 	if m.showStatus && m.statusMsg != "" {
-		if !strings.HasSuffix(listRender, "\n") {
-			builder.WriteString("\n")
-		}
-		builder.WriteString("\n" + m.statusStyle.Render(m.statusMsg))
+		builder.WriteString("\n\n" + m.statusStyle.Render(m.statusMsg))
+	} else {
+		builder.WriteString("\n\n ")
 	}
+
+	help := fmt.Sprintf("\n %s | %s | %s | %s",
+		blurredStyle.Render("↑/↓: Navigate"),
+		blurredStyle.Render("Enter: Copy Password"),
+		blurredStyle.Render("Ctrl+S: Show/Hide Password"),
+		blurredStyle.Render("Esc/q/b: Back"),
+	)
+	builder.WriteString(help)
 
 	return builder.String()
 }
 
-// Define a docStyle specific for this view's layout, assuming styles are defined elsewhere
-var listDocStyle = lipgloss.NewStyle().Margin(1, 2)
+// findRowIndexByID finds the table row index corresponding to a password ID.
+func (m ViewPasswordsModel) findRowIndexByID(id string) int {
+	for i, item := range m.items {
+		if item.ID == id {
+			return i
+		}
+	}
+	return -1
+}
+
+var tableBaseStyle = lipgloss.NewStyle().Margin(1, 2)

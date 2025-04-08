@@ -18,7 +18,6 @@ const (
 	StateGoToMainMenu
 	StateGoToAddPassword
 	StateGoToViewPasswords
-	StateGoToGetPassword
 	StatePasswordAdded
 	StatePasswordCopied
 	StateGoBack
