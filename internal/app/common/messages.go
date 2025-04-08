@@ -18,8 +18,8 @@ const (
 	StateGoToMainMenu
 	StateGoToAddPassword
 	StateGoToViewPasswords
-	StateGoToGetPassword
 	StatePasswordAdded
+	StatePasswordCopied
 	StateGoBack
 	StateLogout
 	StateQuit
@@ -49,7 +49,26 @@ type UserToCreateMsg struct {
 
 // PasswordToAddMsg carries the necessary data for initiating the password creation process.
 type PasswordToAddMsg struct {
-	Data model.Password
+	Title    string
+	Username string
+	Password string
+	Url      string
+}
+
+// DecryptPasswordMsg requests decryption of a specific password entry.
+type DecryptPasswordMsg struct {
+	PasswordID string
+}
+
+// DecryptAndCopyPasswordMsg requests decryption and copying of a specific password.
+type DecryptAndCopyPasswordMsg struct {
+	PasswordID string
+}
+
+// PasswordDecryptedMsg sends back the plaintext of a requested password.
+type PasswordDecryptedMsg struct {
+	PasswordID string
+	Plaintext  string
 }
 
 // LoginCmd returns a command that sends a LoginMsg.
@@ -69,7 +88,12 @@ func CreateUserCmd(username, password string) tea.Cmd {
 // AddPasswordCmd returns a command that sends a PasswordToAddMsg.
 func AddPasswordCmd(data model.Password) tea.Cmd {
 	return func() tea.Msg {
-		return PasswordToAddMsg{Data: data}
+		return PasswordToAddMsg{
+			Title:    data.Title,
+			Username: data.Username,
+			Password: data.Password,
+			Url:      data.Url,
+		}
 	}
 }
 
@@ -84,5 +108,26 @@ func ChangeStateCmd(newState MsgState) tea.Cmd {
 func ErrCmd(err error) tea.Cmd {
 	return func() tea.Msg {
 		return ErrorMsg{Err: err}
+	}
+}
+
+// RequestDecryptPasswordCmd returns a command requesting decryption for a password ID.
+func RequestDecryptPasswordCmd(passwordID string) tea.Cmd {
+	return func() tea.Msg {
+		return DecryptPasswordMsg{PasswordID: passwordID}
+	}
+}
+
+// RequestDecryptAndCopyPasswordCmd returns a command requesting decryption and copy for a password ID.
+func RequestDecryptAndCopyPasswordCmd(passwordID string) tea.Cmd {
+	return func() tea.Msg {
+		return DecryptAndCopyPasswordMsg{PasswordID: passwordID}
+	}
+}
+
+// PasswordDecryptedCmd returns a command sending back the decrypted password.
+func PasswordDecryptedCmd(passwordID, plaintext string) tea.Cmd {
+	return func() tea.Msg {
+		return PasswordDecryptedMsg{PasswordID: passwordID, Plaintext: plaintext}
 	}
 }

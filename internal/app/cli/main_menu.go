@@ -6,17 +6,15 @@ import (
 	"strings"
 	"yubigo-pass/internal/app/common"
 
-	"github.com/charmbracelet/lipgloss"
-
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 const listHeight = 14
 
 // Constants defining main menu item labels.
 const (
-	GetPasswordItem  = "Get password"
 	ViewPasswordItem = "View your passwords"
 	AddPasswordItem  = "Add a new password" // #nosec G101
 	LogoutItem       = "Logout"
@@ -65,12 +63,12 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 type MainMenuModel struct {
 	list     list.Model
 	quitting bool
+	// lastStateSent common.MsgState
 }
 
 // NewMainMenuModel creates a new instance of the MainMenuModel.
 func NewMainMenuModel() MainMenuModel {
 	items := []list.Item{
-		item(GetPasswordItem),
 		item(ViewPasswordItem),
 		item(AddPasswordItem),
 		item(LogoutItem),
@@ -93,7 +91,7 @@ func NewMainMenuModel() MainMenuModel {
 	}
 }
 
-// Init initializes the MainMenuModel. Currently returns nil.
+// Init initializes the MainMenuModel
 func (m MainMenuModel) Init() tea.Cmd {
 	return nil
 }
@@ -123,20 +121,22 @@ func (m MainMenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 
+			var nextState common.MsgState
 			choice := string(selectedItem)
 			switch choice {
-			case GetPasswordItem:
-				return m, common.ChangeStateCmd(common.StateGoToGetPassword)
 			case ViewPasswordItem:
-				return m, common.ChangeStateCmd(common.StateGoToViewPasswords)
+				nextState = common.StateGoToViewPasswords
 			case AddPasswordItem:
-				return m, common.ChangeStateCmd(common.StateGoToAddPassword)
+				nextState = common.StateGoToAddPassword
 			case LogoutItem:
-				return m, common.ChangeStateCmd(common.StateLogout)
+				nextState = common.StateLogout
 			case QuitItem:
 				m.quitting = true
-				return m, common.ChangeStateCmd(common.StateQuit)
+				nextState = common.StateQuit
+			default:
+				return m, nil
 			}
+			return m, common.ChangeStateCmd(nextState)
 		}
 	}
 
@@ -150,9 +150,7 @@ func (m MainMenuModel) View() string {
 	if m.quitting {
 		return quitTextStyle.Render("Quitting.")
 	}
-	// Use a docStyle for consistent padding/margins around the list
 	return docStyle.Render(m.list.View())
 }
 
-// Added docStyle for consistent layout
 var docStyle = lipgloss.NewStyle().Margin(1, 2)
